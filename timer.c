@@ -16,6 +16,8 @@
 
 #include <gtk/gtk.h>
 
+#define APP_NAME	"Tempus - timer"
+
 struct widgets {
 	GtkWidget *window;
 	GtkWidget *start;
@@ -40,11 +42,28 @@ static void seconds_to_hms(double *hours, double *minutes, double *seconds)
 	*hours = secs / 60;
 }
 
+static void update_window_title(struct widgets *w)
+{
+	double hours;
+	double minutes;
+	double seconds;
+	char title[32];
+
+	seconds_to_hms(&hours, &minutes, &seconds);
+
+	snprintf(title, sizeof(title), "%s [%s%02d:%02d:%02d]", APP_NAME,
+			(timer_state == TIMER_RUNNING) ? "Rec - " : "",
+			(int)hours, (int)minutes, (int)seconds);
+	gtk_window_set_title(GTK_WINDOW(w->window), title);
+}
+
 static bool do_timer(struct widgets *w)
 {
 	double hours;
 	double minutes;
 	double seconds;
+
+	update_window_title(w);
 
 	if (timer_state == TIMER_STOPPED)
 		return false;
@@ -62,6 +81,14 @@ static bool do_timer(struct widgets *w)
 
 static void cb_stop_timer(GtkButton *button, struct widgets *w)
 {
+	if (timer_state == TIMER_STOPPED)
+		return;
+
+	/*
+	 * Subtract a second from elapsed_seconds as we will have ticked
+	 * one second on in do_timer()
+	 */
+	elapsed_seconds--;
 	timer_state = TIMER_STOPPED;
 }
 
@@ -111,6 +138,7 @@ int main(int argc, char **argv)
 	gtk_builder_connect_signals(builder, widgets);
 	g_object_unref(G_OBJECT(builder));
 
+	update_window_title(widgets);
 	gtk_widget_show(widgets->window);
 	gtk_main();
 
