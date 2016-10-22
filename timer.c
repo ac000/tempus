@@ -51,9 +51,9 @@ static void update_window_title(struct widgets *w)
 
 	seconds_to_hms(&hours, &minutes, &seconds);
 
-	snprintf(title, sizeof(title), "%s [%s%02d:%02d:%02d]", APP_NAME,
+	snprintf(title, sizeof(title), "%s [%s%02g:%02g:%02g]", APP_NAME,
 			(timer_state == TIMER_RUNNING) ? "Rec - " : "",
-			(int)hours, (int)minutes, (int)seconds);
+			hours, minutes, seconds);
 	gtk_window_set_title(GTK_WINDOW(w->window), title);
 }
 
