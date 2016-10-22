@@ -84,6 +84,10 @@ static void cb_stop_timer(GtkButton *button, struct widgets *w)
 	if (timer_state == TIMER_STOPPED)
 		return;
 
+	gtk_editable_set_editable(GTK_EDITABLE(w->hours), true);
+	gtk_editable_set_editable(GTK_EDITABLE(w->minutes), true);
+	gtk_editable_set_editable(GTK_EDITABLE(w->seconds), true);
+
 	/*
 	 * Subtract a second from elapsed_seconds as we will have ticked
 	 * one second on in do_timer()
@@ -96,6 +100,16 @@ static void cb_start_timer(GtkButton *button, struct widgets *w)
 {
 	if (timer_state == TIMER_RUNNING)
 		return;
+
+	gtk_editable_set_editable(GTK_EDITABLE(w->hours), false);
+	gtk_editable_set_editable(GTK_EDITABLE(w->minutes), false);
+	gtk_editable_set_editable(GTK_EDITABLE(w->seconds), false);
+
+	/* Take into account a possibly adjusted value */
+	elapsed_seconds =
+		gtk_spin_button_get_value(GTK_SPIN_BUTTON(w->hours)) * 3600 +
+		gtk_spin_button_get_value(GTK_SPIN_BUTTON(w->minutes)) * 60 +
+		gtk_spin_button_get_value(GTK_SPIN_BUTTON(w->seconds));
 
 	timer_state = TIMER_RUNNING;
 	g_timeout_add(1000, (GSourceFunc)do_timer, w);
