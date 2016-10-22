@@ -63,10 +63,10 @@ static bool do_timer(struct widgets *w)
 	double minutes;
 	double seconds;
 
-	update_window_title(w);
-
 	if (timer_state == TIMER_STOPPED)
 		return false;
+
+	elapsed_seconds++;
 
 	seconds_to_hms(&hours, &minutes, &seconds);
 
@@ -74,7 +74,7 @@ static bool do_timer(struct widgets *w)
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(w->minutes), minutes);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(w->hours), hours);
 
-	elapsed_seconds++;
+	update_window_title(w);
 
 	return true;
 }
@@ -88,11 +88,6 @@ static void cb_stop_timer(GtkButton *button, struct widgets *w)
 	gtk_editable_set_editable(GTK_EDITABLE(w->minutes), true);
 	gtk_editable_set_editable(GTK_EDITABLE(w->seconds), true);
 
-	/*
-	 * Subtract a second from elapsed_seconds as we will have ticked
-	 * one second on in do_timer()
-	 */
-	elapsed_seconds--;
 	timer_state = TIMER_STOPPED;
 }
 
