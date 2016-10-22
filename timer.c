@@ -81,8 +81,8 @@ static bool do_timer(struct widgets *w)
 
 static void cb_stop_timer(GtkButton *button, struct widgets *w)
 {
-	if (timer_state == TIMER_STOPPED)
-		return;
+	gtk_widget_set_sensitive(w->start, true);
+	gtk_widget_set_sensitive(w->stop, false);
 
 	gtk_editable_set_editable(GTK_EDITABLE(w->hours), true);
 	gtk_editable_set_editable(GTK_EDITABLE(w->minutes), true);
@@ -98,8 +98,8 @@ static void cb_stop_timer(GtkButton *button, struct widgets *w)
 
 static void cb_start_timer(GtkButton *button, struct widgets *w)
 {
-	if (timer_state == TIMER_RUNNING)
-		return;
+	gtk_widget_set_sensitive(w->start, false);
+	gtk_widget_set_sensitive(w->stop, true);
 
 	gtk_editable_set_editable(GTK_EDITABLE(w->hours), false);
 	gtk_editable_set_editable(GTK_EDITABLE(w->minutes), false);
@@ -153,6 +153,7 @@ int main(int argc, char **argv)
 	g_object_unref(G_OBJECT(builder));
 
 	update_window_title(widgets);
+	gtk_widget_set_sensitive(widgets->stop, false);
 	gtk_widget_show(widgets->window);
 	gtk_main();
 
