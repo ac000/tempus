@@ -10,6 +10,21 @@ timer
 The first utility is a simple timer.
 
 
+tempus
+------
+
+The main program, incorporates the above timer and adds a logging ability.
+You can set a name, project and sub-project and save and edit them.
+
+They are saved to a tokyocabinet database table.
+
+
+Building
+========
+
+Requires: libuuid-devel, tokyocabinet-devel, gtk3-devel, glib2-devel
+
+
 License
 =======
 
