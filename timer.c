@@ -63,8 +63,10 @@ static bool do_timer(struct widgets *w)
 	double minutes;
 	double seconds;
 
-	if (timer_state == TIMER_STOPPED)
+	if (timer_state == TIMER_STOPPED) {
+		update_window_title(w);
 		return false;
+	}
 
 	elapsed_seconds++;
 
