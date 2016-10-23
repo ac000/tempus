@@ -5,6 +5,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
+#include <time.h>
 #include <linux/limits.h>
 
 #include <tcutil.h>
@@ -46,6 +47,9 @@ struct list_w {
 };
 
 enum timer_states { TIMER_STOPPED = 0, TIMER_RUNNING };
+
+/* Set this to the number of seconds past midnight a new day should start */
+static const int new_day_offset = 16200; /* 0430 */
 
 static int timer_state = TIMER_STOPPED;
 static double elapsed_seconds;
@@ -231,7 +235,8 @@ static struct list_w *create_list_widget(struct widgets *w,
 
 static void cb_save(GtkButton *button, struct widgets *w)
 {
-	GDateTime *dt = g_date_time_new_now_local();
+	time_t now = time(NULL);
+	GDateTime *dt = g_date_time_new_from_unix_local(now - new_day_offset);
 	struct list_w *lw = create_list_widget(w, tempus_id);
 	double h;
 	double m;
