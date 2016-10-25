@@ -80,7 +80,7 @@ static void update_window_title(struct widgets *w)
 	double hours;
 	double minutes;
 	double seconds;
-	char title[64];
+	char title[128];
 
 	seconds_to_hms(&hours, &minutes, &seconds);
 
