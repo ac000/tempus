@@ -284,9 +284,8 @@ static void cb_save(GtkButton *button, struct widgets *w)
 
 	tdb = tctdbnew();
 	tctdbopen(tdb, tempi_store, TDBOWRITER | TDBOCREAT);
-	pksize = sprintf(pkbuf, "%ld", (long)tctdbgenuid(tdb));
-	cols = tcmapnew3("tempus_id", tempus_id,
-			 "date", date,
+	pksize = snprintf(pkbuf, sizeof(pkbuf), "%s", tempus_id);
+	cols = tcmapnew3("date", date,
 			 "company", gtk_entry_get_text(GTK_ENTRY(w->company)),
 			 "project", gtk_entry_get_text(GTK_ENTRY(w->project)),
 			 "sub_project", gtk_entry_get_text(GTK_ENTRY(
@@ -357,14 +356,12 @@ static void load_tempi(struct widgets *w)
 	for (i = 0; i < nr_items; i++) {
 		int rsize;
 		struct list_w *lw;
-		const char *rbuf = tclistval(res, i, &rsize);
-		char tid[sizeof(tempus_id)];
-		TCMAP *cols = tctdbget(tdb, rbuf, rsize);
+		const char *pkbuf = tclistval(res, i, &rsize);
+		TCMAP *cols = tctdbget(tdb, pkbuf, rsize);
 
 		tcmapiterinit(cols);
 
-		snprintf(tid, sizeof(tid), "%s", tcmapget2(cols, "tempus_id"));
-		lw = create_list_widget(w, tid);
+		lw = create_list_widget(w, pkbuf);
 		gtk_label_set_text(GTK_LABEL(lw->date), tcmapget2(cols,
 					"date"));
 		gtk_entry_set_text(GTK_ENTRY(lw->company), tcmapget2(cols,
@@ -376,7 +373,7 @@ static void load_tempi(struct widgets *w)
 		gtk_entry_set_text(GTK_ENTRY(lw->hours), tcmapget2(cols,
 					"hours"));
 
-		g_tree_replace(tempi, strdup(tid), lw);
+		g_tree_replace(tempi, strdup(pkbuf), lw);
 
 		gtk_container_add(GTK_CONTAINER(w->list_box), lw->hbox);
 		gtk_box_reorder_child(GTK_BOX(w->list_box), lw->hbox, 0);
