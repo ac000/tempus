@@ -1,3 +1,12 @@
+/*
+ * tempus.c -	Time tracking tool
+ *
+ * Copyright (C) 2016	Andrew Clayton <andrew@digital-domain.net>
+ *
+ * Licensed under the GNU General Public License V2
+ * See COPYING
+ */
+
 #define	_XOPEN_SOURCE	500	/* strdup(3) */
 
 #include <stdio.h>
