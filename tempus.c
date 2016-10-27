@@ -244,15 +244,12 @@ static struct list_w *create_list_widget(struct widgets *w,
 
 static void cb_save(GtkButton *button, struct widgets *w)
 {
-	time_t now = time(NULL);
-	GDateTime *dt = g_date_time_new_from_unix_local(now - new_day_offset);
+	time_t now = time(NULL) - new_day_offset;
+	struct tm *tm = localtime(&now);
 	struct list_w *lw = create_list_widget(w, tempus_id);
 	double h;
 	double m;
 	double s;
-	int year;
-	int month;
-	int day;
 	int pksize;
 	char pkbuf[256];
 	char hours[10];
@@ -260,10 +257,9 @@ static void cb_save(GtkButton *button, struct widgets *w)
 	TCTDB *tdb;
 	TCMAP *cols;
 
-	g_date_time_get_ymd(dt, &year, &month, &day);
-	snprintf(date, sizeof(date), "%04d-%02d-%02d", year, month, day);
+	snprintf(date, sizeof(date), "%04d-%02d-%02d", tm->tm_year + 1900,
+			tm->tm_mon + 1, tm->tm_mday);
 	gtk_label_set_text(GTK_LABEL(lw->date), date);
-	g_date_time_unref(dt);
 
 	gtk_entry_set_text(GTK_ENTRY(lw->company), gtk_entry_get_text(
 				GTK_ENTRY(w->company)));
