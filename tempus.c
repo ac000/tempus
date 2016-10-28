@@ -76,6 +76,19 @@ static void seconds_to_hms(double *hours, double *minutes, double *seconds)
 	*hours = secs / 60;
 }
 
+static bool is_editable(const char *date)
+{
+	time_t now = time(NULL) - new_day_offset;
+	struct tm *tm = localtime(&now);
+
+	if (atoi(date) != tm->tm_year + 1900 ||
+	    atoi(date + 5) != tm->tm_mon + 1 ||
+	    atoi(date + 8) != tm->tm_mday)
+		return false;
+	else
+		return true;
+}
+
 static void free_lw(gpointer data)
 {
 	struct list_w *lw = data;
@@ -274,9 +287,12 @@ static void cb_save(GtkButton *button, struct widgets *w)
 
 	g_tree_replace(tempi, strdup(tempus_id), lw);
 
+	if (!is_editable(date))
+		gtk_widget_set_no_show_all(lw->edit, true);
+
 	gtk_container_add(GTK_CONTAINER(w->list_box), lw->hbox);
 	gtk_box_reorder_child(GTK_BOX(w->list_box), lw->hbox, 0);
-	gtk_widget_show_all(w->list_box);
+	gtk_widget_show_all(lw->hbox);
 
 	tdb = tctdbnew();
 	tctdbopen(tdb, tempi_store, TDBOWRITER | TDBOCREAT);
@@ -352,14 +368,15 @@ static void load_tempi(struct widgets *w)
 	for (i = 0; i < nr_items; i++) {
 		int rsize;
 		struct list_w *lw;
+		const char *date;
 		const char *pkbuf = tclistval(res, i, &rsize);
 		TCMAP *cols = tctdbget(tdb, pkbuf, rsize);
 
 		tcmapiterinit(cols);
+		date = tcmapget2(cols, "date");
 
 		lw = create_list_widget(w, pkbuf);
-		gtk_label_set_text(GTK_LABEL(lw->date), tcmapget2(cols,
-					"date"));
+		gtk_label_set_text(GTK_LABEL(lw->date), date);
 		gtk_entry_set_text(GTK_ENTRY(lw->company), tcmapget2(cols,
 					"company"));
 		gtk_entry_set_text(GTK_ENTRY(lw->project), tcmapget2(cols,
@@ -369,14 +386,16 @@ static void load_tempi(struct widgets *w)
 		gtk_entry_set_text(GTK_ENTRY(lw->hours), tcmapget2(cols,
 					"hours"));
 
+		tcmapdel(cols);
 		g_tree_replace(tempi, strdup(pkbuf), lw);
+
+		if (!is_editable(date))
+			gtk_widget_set_no_show_all(lw->edit, true);
 
 		gtk_container_add(GTK_CONTAINER(w->list_box), lw->hbox);
 		gtk_box_reorder_child(GTK_BOX(w->list_box), lw->hbox, 0);
-
-		tcmapdel(cols);
+		gtk_widget_show_all(lw->hbox);
 	}
-	gtk_widget_show_all(w->list_box);
 
 	tclistdel(res);
 	tctdbqrydel(qry);
