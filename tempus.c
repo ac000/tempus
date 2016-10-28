@@ -241,6 +241,16 @@ static struct list_w *create_list_widget(struct widgets *w,
 	lw->hours = gtk_entry_new();
 	lw->edit = gtk_button_new_with_label("Edit");
 
+	gtk_editable_set_editable(GTK_EDITABLE(lw->company), false);
+	gtk_editable_set_editable(GTK_EDITABLE(lw->project), false);
+	gtk_editable_set_editable(GTK_EDITABLE(lw->sub_project), false);
+	gtk_editable_set_editable(GTK_EDITABLE(lw->hours), false);
+
+	gtk_widget_set_can_focus(lw->company, false);
+	gtk_widget_set_can_focus(lw->project, false);
+	gtk_widget_set_can_focus(lw->sub_project, false);
+	gtk_widget_set_can_focus(lw->hours, false);
+
 	gtk_box_pack_start(GTK_BOX(lw->hbox), lw->date, false, false, 0);
 	gtk_box_pack_start(GTK_BOX(lw->hbox), lw->company, false, false, 0);
 	gtk_box_pack_start(GTK_BOX(lw->hbox), lw->project, false, false, 0);
