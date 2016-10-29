@@ -251,6 +251,11 @@ static struct list_w *create_list_widget(struct widgets *w,
 	gtk_widget_set_can_focus(lw->sub_project, false);
 	gtk_widget_set_can_focus(lw->hours, false);
 
+	gtk_entry_set_has_frame(GTK_ENTRY(lw->company), false);
+	gtk_entry_set_has_frame(GTK_ENTRY(lw->project), false);
+	gtk_entry_set_has_frame(GTK_ENTRY(lw->sub_project), false);
+	gtk_entry_set_has_frame(GTK_ENTRY(lw->hours), false);
+
 	gtk_entry_set_width_chars(GTK_ENTRY(lw->hours), 10);
 
 	gtk_box_pack_start(GTK_BOX(lw->hbox), lw->date, false, false, 10);
