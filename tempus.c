@@ -375,6 +375,7 @@ static void load_tempi(struct widgets *w)
 	TDBQRY *qry;
 	TCTDB *tdb;
 	TCLIST *res;
+	char prev_date[11] = "\0";
 	int nr_items;
 	int i;
 
@@ -395,6 +396,17 @@ static void load_tempi(struct widgets *w)
 
 		tcmapiterinit(cols);
 		date = tcmapget2(cols, "date");
+
+		if (strcmp(prev_date, date) != 0) {
+			GtkWidget *sep =
+				gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
+
+			gtk_box_pack_start(GTK_BOX(w->list_box), sep, false,
+					false, 5);
+			gtk_box_reorder_child(GTK_BOX(w->list_box), sep, 0);
+			gtk_widget_show(sep);
+		}
+		snprintf(prev_date, sizeof(prev_date), "%s", date);
 
 		lw = create_list_widget(w, pkbuf);
 		gtk_entry_set_text(GTK_ENTRY(lw->company), tcmapget2(cols,
