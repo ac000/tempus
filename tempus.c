@@ -259,7 +259,7 @@ static struct list_w *create_list_widget(struct widgets *w,
 	gtk_box_pack_start(GTK_BOX(lw->hbox), lw->sub_project, false, false,
 			0);
 	gtk_box_pack_start(GTK_BOX(lw->hbox), lw->hours, false, false, 0);
-	gtk_box_pack_start(GTK_BOX(lw->hbox), lw->edit, false, false, 0);
+	gtk_box_pack_end(GTK_BOX(lw->hbox), lw->edit, false, false, 5);
 	gtk_widget_set_name(lw->edit, tempus_id);
 	g_signal_connect(G_OBJECT(lw->edit), "clicked", G_CALLBACK(cb_edit),
 			w);
