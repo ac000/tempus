@@ -253,7 +253,7 @@ static struct list_w *create_list_widget(struct widgets *w,
 
 	gtk_entry_set_width_chars(GTK_ENTRY(lw->hours), 10);
 
-	gtk_box_pack_start(GTK_BOX(lw->hbox), lw->date, false, false, 0);
+	gtk_box_pack_start(GTK_BOX(lw->hbox), lw->date, false, false, 10);
 	gtk_box_pack_start(GTK_BOX(lw->hbox), lw->company, false, false, 0);
 	gtk_box_pack_start(GTK_BOX(lw->hbox), lw->project, false, false, 0);
 	gtk_box_pack_start(GTK_BOX(lw->hbox), lw->sub_project, false, false,
