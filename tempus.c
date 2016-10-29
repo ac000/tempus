@@ -299,8 +299,17 @@ static void cb_save(GtkButton *button, struct widgets *w)
 
 	g_tree_replace(tempi, strdup(tempus_id), lw);
 
-	if (!is_editable(date))
+	if (!is_editable(date)) {
+		gtk_label_set_text(GTK_LABEL(lw->date), date);
 		gtk_widget_set_no_show_all(lw->edit, true);
+	} else {
+		const char *fmt = "<span weight=\"bold\">\%s</span>";
+		char *markup;
+
+		markup = g_markup_printf_escaped(fmt, date);
+		gtk_label_set_markup(GTK_LABEL(lw->date), markup);
+		g_free(markup);
+	}
 
 	gtk_container_add(GTK_CONTAINER(w->list_box), lw->hbox);
 	gtk_box_reorder_child(GTK_BOX(w->list_box), lw->hbox, 0);
@@ -388,7 +397,6 @@ static void load_tempi(struct widgets *w)
 		date = tcmapget2(cols, "date");
 
 		lw = create_list_widget(w, pkbuf);
-		gtk_label_set_text(GTK_LABEL(lw->date), date);
 		gtk_entry_set_text(GTK_ENTRY(lw->company), tcmapget2(cols,
 					"company"));
 		gtk_entry_set_text(GTK_ENTRY(lw->project), tcmapget2(cols,
@@ -401,8 +409,17 @@ static void load_tempi(struct widgets *w)
 		tcmapdel(cols);
 		g_tree_replace(tempi, strdup(pkbuf), lw);
 
-		if (!is_editable(date))
+		if (!is_editable(date)) {
+			gtk_label_set_text(GTK_LABEL(lw->date), date);
 			gtk_widget_set_no_show_all(lw->edit, true);
+		} else {
+			const char *fmt = "<span weight=\"bold\">\%s</span>";
+			char *markup;
+
+			markup = g_markup_printf_escaped(fmt, date);
+			gtk_label_set_markup(GTK_LABEL(lw->date), markup);
+			g_free(markup);
+		}
 
 		gtk_container_add(GTK_CONTAINER(w->list_box), lw->hbox);
 		gtk_box_reorder_child(GTK_BOX(w->list_box), lw->hbox, 0);
