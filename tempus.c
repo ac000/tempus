@@ -317,7 +317,8 @@ static void cb_save(GtkButton *button, struct widgets *w)
 	}
 
 	gtk_container_add(GTK_CONTAINER(w->list_box), lw->hbox);
-	gtk_box_reorder_child(GTK_BOX(w->list_box), lw->hbox, 0);
+	/* 1 for the position to take into account the GtkSeparator */
+	gtk_box_reorder_child(GTK_BOX(w->list_box), lw->hbox, 1);
 	gtk_widget_show_all(lw->hbox);
 
 	tdb = tctdbnew();
@@ -389,6 +390,7 @@ static void load_tempi(struct widgets *w)
 	tdb = tctdbnew();
 	tctdbopen(tdb, tempi_store, TDBOREADER);
 	qry = tctdbqrynew(tdb);
+	tctdbqrysetorder(qry, "date", TDBQOSTRDESC);
 	res = tctdbqrysearch(qry);
 
 	nr_items = tclistnum(res);
@@ -408,7 +410,6 @@ static void load_tempi(struct widgets *w)
 
 			gtk_box_pack_start(GTK_BOX(w->list_box), sep, false,
 					false, 5);
-			gtk_box_reorder_child(GTK_BOX(w->list_box), sep, 0);
 			gtk_widget_show(sep);
 		}
 		snprintf(prev_date, sizeof(prev_date), "%s", date);
@@ -438,8 +439,8 @@ static void load_tempi(struct widgets *w)
 			g_free(markup);
 		}
 
-		gtk_container_add(GTK_CONTAINER(w->list_box), lw->hbox);
-		gtk_box_reorder_child(GTK_BOX(w->list_box), lw->hbox, 0);
+		gtk_box_pack_start(GTK_BOX(w->list_box), lw->hbox, false,
+				false, 0);
 		gtk_widget_show_all(lw->hbox);
 	}
 
