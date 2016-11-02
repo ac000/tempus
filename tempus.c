@@ -60,6 +60,7 @@ enum timer_states { TIMER_STOPPED = 0, TIMER_RUNNING };
 /* Set this to the number of seconds past midnight a new day should start */
 static const int new_day_offset = 16200; /* 0430 */
 
+static bool todays_date_hdr_displayed;
 static int timer_state = TIMER_STOPPED;
 static double elapsed_seconds;
 static GTree *tempi;
@@ -76,7 +77,7 @@ static void seconds_to_hms(double *hours, double *minutes, double *seconds)
 	*hours = secs / 60;
 }
 
-static bool is_editable(const char *date)
+static bool is_today(const char *date)
 {
 	time_t now = time(NULL) - new_day_offset;
 	struct tm *tm = localtime(&now);
@@ -228,13 +229,44 @@ static void cb_new(GtkButton *button, struct widgets *w)
 	uuid_unparse(uuid, tempus_id);
 }
 
+static void create_date_hdr(struct widgets *w, const char *date, bool reorder)
+{
+	GtkWidget *sep = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
+	GtkWidget *date_hdr = gtk_label_new(date);
+
+	if (is_today(date)) {
+		const char *fmt = "<span weight=\"bold\">\%s</span>";
+		char *markup;
+
+		markup = g_markup_printf_escaped(fmt, date);
+		gtk_label_set_markup(GTK_LABEL(date_hdr), markup);
+		g_free(markup);
+
+		todays_date_hdr_displayed = true;
+	} else {
+		gtk_label_set_text(GTK_LABEL(date_hdr), date);
+	}
+	gtk_widget_set_halign(date_hdr, GTK_ALIGN_START);
+	gtk_widget_set_margin_start(date_hdr, 10);
+
+	gtk_box_pack_start(GTK_BOX(w->list_box), sep, false, false, 5);
+	gtk_box_pack_start(GTK_BOX(w->list_box), date_hdr, false, false, 0);
+
+	if (reorder) {
+		gtk_box_reorder_child(GTK_BOX(w->list_box), sep, 0);
+		gtk_box_reorder_child(GTK_BOX(w->list_box), date_hdr, 1);
+	}
+
+	gtk_widget_show(sep);
+	gtk_widget_show(date_hdr);
+}
+
 static struct list_w *create_list_widget(struct widgets *w,
 					 const char *tempus_id)
 {
 	struct list_w *lw = malloc(sizeof(struct list_w));
 
 	lw->hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-	lw->date = gtk_label_new("");
 	lw->company = gtk_entry_new();
 	lw->project = gtk_entry_new();
 	lw->sub_project = gtk_entry_new();
@@ -258,7 +290,7 @@ static struct list_w *create_list_widget(struct widgets *w,
 
 	gtk_entry_set_width_chars(GTK_ENTRY(lw->hours), 10);
 
-	gtk_box_pack_start(GTK_BOX(lw->hbox), lw->date, false, false, 10);
+	gtk_widget_set_margin_start(lw->company, 48);
 	gtk_box_pack_start(GTK_BOX(lw->hbox), lw->company, false, false, 0);
 	gtk_box_pack_start(GTK_BOX(lw->hbox), lw->project, false, false, 0);
 	gtk_box_pack_start(GTK_BOX(lw->hbox), lw->sub_project, false, false,
@@ -289,7 +321,8 @@ static void cb_save(GtkButton *button, struct widgets *w)
 
 	snprintf(date, sizeof(date), "%04d-%02d-%02d", tm->tm_year + 1900,
 			tm->tm_mon + 1, tm->tm_mday);
-	gtk_label_set_text(GTK_LABEL(lw->date), date);
+	if (!todays_date_hdr_displayed)
+		create_date_hdr(w, date, true);
 
 	gtk_entry_set_text(GTK_ENTRY(lw->company), gtk_entry_get_text(
 				GTK_ENTRY(w->company)));
@@ -304,21 +337,12 @@ static void cb_save(GtkButton *button, struct widgets *w)
 
 	g_tree_replace(tempi, strdup(tempus_id), lw);
 
-	if (!is_editable(date)) {
-		gtk_label_set_text(GTK_LABEL(lw->date), date);
-		gtk_widget_set_no_show_all(lw->edit, true);
-	} else {
-		const char *fmt = "<span weight=\"bold\">\%s</span>";
-		char *markup;
-
-		markup = g_markup_printf_escaped(fmt, date);
-		gtk_label_set_markup(GTK_LABEL(lw->date), markup);
-		g_free(markup);
-	}
-
 	gtk_container_add(GTK_CONTAINER(w->list_box), lw->hbox);
-	/* 1 for the position to take into account the GtkSeparator */
-	gtk_box_reorder_child(GTK_BOX(w->list_box), lw->hbox, 1);
+	/*
+	 * 2 for the position to take into account the GtkSeparator
+	 * and GtkLabel
+	 */
+	gtk_box_reorder_child(GTK_BOX(w->list_box), lw->hbox, 2);
 	gtk_widget_show_all(lw->hbox);
 
 	tdb = tctdbnew();
@@ -404,14 +428,8 @@ static void load_tempi(struct widgets *w)
 		tcmapiterinit(cols);
 		date = tcmapget2(cols, "date");
 
-		if (strcmp(prev_date, date) != 0) {
-			GtkWidget *sep =
-				gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
-
-			gtk_box_pack_start(GTK_BOX(w->list_box), sep, false,
-					false, 5);
-			gtk_widget_show(sep);
-		}
+		if (strcmp(prev_date, date) != 0)
+			create_date_hdr(w, date, false);
 		snprintf(prev_date, sizeof(prev_date), "%s", date);
 
 		lw = create_list_widget(w, pkbuf);
@@ -427,17 +445,8 @@ static void load_tempi(struct widgets *w)
 		tcmapdel(cols);
 		g_tree_replace(tempi, strdup(pkbuf), lw);
 
-		if (!is_editable(date)) {
-			gtk_label_set_text(GTK_LABEL(lw->date), date);
+		if (!is_today(date))
 			gtk_widget_set_no_show_all(lw->edit, true);
-		} else {
-			const char *fmt = "<span weight=\"bold\">\%s</span>";
-			char *markup;
-
-			markup = g_markup_printf_escaped(fmt, date);
-			gtk_label_set_markup(GTK_LABEL(lw->date), markup);
-			g_free(markup);
-		}
 
 		gtk_box_pack_start(GTK_BOX(w->list_box), lw->hbox, false,
 				false, 0);
