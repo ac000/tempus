@@ -30,7 +30,6 @@
 
 struct widgets {
 	GtkWidget *window;
-	GtkWidget *notebook;
 	GtkWidget *list_box;
 	GtkWidget *start;
 	GtkWidget *stop;
@@ -364,7 +363,6 @@ static void cb_save(GtkButton *button, struct widgets *w)
 static void get_widgets(struct widgets *w, GtkBuilder *builder)
 {
 	w->window = GTK_WIDGET(gtk_builder_get_object(builder, "window"));
-	w->notebook = GTK_WIDGET(gtk_builder_get_object(builder, "notebook"));
 	w->list_box = GTK_WIDGET(gtk_builder_get_object(builder, "list_box"));
 	w->save = GTK_WIDGET(gtk_builder_get_object(builder, "save"));
 	w->new = GTK_WIDGET(gtk_builder_get_object(builder, "new"));
