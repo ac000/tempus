@@ -41,6 +41,7 @@ struct widgets {
 	GtkWidget *company;
 	GtkWidget *project;
 	GtkWidget *sub_project;
+	GtkWidget *description;
 };
 
 struct list_w {
@@ -87,6 +88,35 @@ static bool is_today(const char *date)
 		return false;
 	else
 		return true;
+}
+
+static const char *load_description(const char *id)
+{
+	TCTDB *tdb;
+	TDBQRY *qry;
+	TCLIST *res;
+	TCMAP *cols;
+	int rsize;
+	const char *pkbuf;
+	const char *desc;
+
+	tdb = tctdbnew();
+	tctdbopen(tdb, tempi_store, TDBOREADER);
+	qry = tctdbqrynew(tdb);
+	tctdbqryaddcond(qry, "", TDBQCSTREQ, id);
+	res = tctdbqrysearch(qry);
+
+	pkbuf = tclistval(res, 0, &rsize);
+	cols = tctdbget(tdb, pkbuf, rsize);
+	tcmapiterinit(cols);
+	desc = tcmapget2(cols, "description");
+
+	tclistdel(res);
+	tctdbqrydel(qry);
+	tctdbclose(tdb);
+	tctdbdel(tdb);
+
+	return desc;
 }
 
 static void free_lw(gpointer data)
@@ -181,6 +211,8 @@ static void cb_edit(GtkButton *button, struct widgets *w)
 	const char *id = gtk_widget_get_name(GTK_WIDGET(button));
 	struct list_w *lw = g_tree_lookup(tempi, id);
 	const char *time_str = gtk_entry_get_text(GTK_ENTRY(lw->hours));
+	const char *desc;
+	GtkTextBuffer *desc_buf;
 	int hours;
 	int minutes;
 	int seconds;
@@ -194,6 +226,13 @@ static void cb_edit(GtkButton *button, struct widgets *w)
 				GTK_ENTRY(lw->project)));
 	gtk_entry_set_text(GTK_ENTRY(w->sub_project), gtk_entry_get_text(
 				GTK_ENTRY(lw->sub_project)));
+
+	desc_buf = gtk_text_buffer_new(NULL);
+	desc = load_description(id);
+	if (!desc)
+		desc = "\0";
+	gtk_text_buffer_set_text(desc_buf, desc, -1);
+	gtk_text_view_set_buffer(GTK_TEXT_VIEW(w->description), desc_buf);
 
 	hours = atoi(time_str);
 	minutes = atoi(time_str + 3);
@@ -211,6 +250,7 @@ static void cb_edit(GtkButton *button, struct widgets *w)
 static void cb_new(GtkButton *button, struct widgets *w)
 {
 	uuid_t uuid;
+	GtkTextBuffer *desc_buf;
 
 	gtk_widget_set_sensitive(w->save, false);
 	gtk_widget_set_sensitive(w->new, false);
@@ -221,6 +261,10 @@ static void cb_new(GtkButton *button, struct widgets *w)
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(w->hours), 0.0);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(w->minutes), 0.0);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(w->seconds), 0.0);
+
+	desc_buf = gtk_text_buffer_new(NULL);
+	gtk_text_buffer_set_text(desc_buf, "", -1);
+	gtk_text_view_set_buffer(GTK_TEXT_VIEW(w->description), desc_buf);
 
 	elapsed_seconds = 0;
 
@@ -308,6 +352,9 @@ static void cb_save(GtkButton *button, struct widgets *w)
 	time_t now = time(NULL) - new_day_offset;
 	struct tm *tm = localtime(&now);
 	struct list_w *lw = create_list_widget(w, tempus_id);
+	GtkTextBuffer *desc_buf;
+	GtkTextIter start;
+	GtkTextIter end;
 	double h;
 	double m;
 	double s;
@@ -315,6 +362,7 @@ static void cb_save(GtkButton *button, struct widgets *w)
 	char pkbuf[256];
 	char hours[10];
 	char date[11];
+	const char *desc;
 	TCTDB *tdb;
 	TCMAP *cols;
 
@@ -330,6 +378,12 @@ static void cb_save(GtkButton *button, struct widgets *w)
 	gtk_entry_set_text(GTK_ENTRY(lw->sub_project), gtk_entry_get_text(
 				GTK_ENTRY(w->sub_project)));
 
+	desc_buf = gtk_text_view_get_buffer(GTK_TEXT_VIEW(w->description));
+	gtk_text_buffer_get_start_iter(desc_buf, &start);
+	gtk_text_buffer_get_end_iter(desc_buf, &end);
+	desc = gtk_text_buffer_get_text(desc_buf, &start, &end, true);
+
+	gtk_widget_set_tooltip_text(lw->hbox, desc);
 	seconds_to_hms(&h, &m, &s);
 	snprintf(hours, sizeof(hours), "%02g:%02g:%02g", h, m, s);
 	gtk_entry_set_text(GTK_ENTRY(lw->hours), hours);
@@ -353,6 +407,7 @@ static void cb_save(GtkButton *button, struct widgets *w)
 			 "sub_project", gtk_entry_get_text(GTK_ENTRY(
 					 w->sub_project)),
 			 "hours", hours,
+			 "description", desc,
 			 NULL);
 	tctdbput(tdb, pkbuf, pksize, cols);
 	tcmapdel(cols);
@@ -375,6 +430,8 @@ static void get_widgets(struct widgets *w, GtkBuilder *builder)
 	w->project = GTK_WIDGET(gtk_builder_get_object(builder, "project"));
 	w->sub_project = GTK_WIDGET(gtk_builder_get_object(builder,
 				"sub_project"));
+	w->description = GTK_WIDGET(gtk_builder_get_object(builder,
+				"description"));
 
 	gtk_widget_set_sensitive(w->save, false);
 	gtk_widget_set_sensitive(w->new, false);
@@ -439,6 +496,8 @@ static void load_tempi(struct widgets *w)
 					"sub_project"));
 		gtk_entry_set_text(GTK_ENTRY(lw->hours), tcmapget2(cols,
 					"hours"));
+		gtk_widget_set_tooltip_text(lw->hbox, tcmapget2(cols,
+					"description"));
 
 		tcmapdel(cols);
 		g_tree_replace(tempi, strdup(pkbuf), lw);
