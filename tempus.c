@@ -29,6 +29,7 @@
 #define APP_NAME	"Tempus"
 
 struct _data {
+	char *description;
 };
 
 struct widgets {
@@ -95,40 +96,12 @@ static bool is_today(const char *date)
 		return true;
 }
 
-static const char *load_description(const char *id)
-{
-	TCTDB *tdb;
-	TDBQRY *qry;
-	TCLIST *res;
-	TCMAP *cols;
-	int rsize;
-	const char *pkbuf;
-	const char *desc;
-
-	tdb = tctdbnew();
-	tctdbopen(tdb, tempi_store, TDBOREADER);
-	qry = tctdbqrynew(tdb);
-	tctdbqryaddcond(qry, "", TDBQCSTREQ, id);
-	res = tctdbqrysearch(qry);
-
-	pkbuf = tclistval(res, 0, &rsize);
-	cols = tctdbget(tdb, pkbuf, rsize);
-	tcmapiterinit(cols);
-	desc = tcmapget2(cols, "description");
-
-	tclistdel(res);
-	tctdbqrydel(qry);
-	tctdbclose(tdb);
-	tctdbdel(tdb);
-
-	return desc;
-}
-
 static void free_lw(gpointer data)
 {
 	struct list_w *lw = data;
 
 	gtk_widget_destroy(lw->hbox);
+	free(lw->data.description);
 	free(lw);
 }
 
@@ -216,7 +189,6 @@ static void cb_edit(GtkButton *button, struct widgets *w)
 	const char *id = gtk_widget_get_name(GTK_WIDGET(button));
 	struct list_w *lw = g_tree_lookup(tempi, id);
 	const char *time_str = gtk_entry_get_text(GTK_ENTRY(lw->hours));
-	const char *desc;
 	GtkTextBuffer *desc_buf;
 	int hours;
 	int minutes;
@@ -233,10 +205,8 @@ static void cb_edit(GtkButton *button, struct widgets *w)
 				GTK_ENTRY(lw->sub_project)));
 
 	desc_buf = gtk_text_buffer_new(NULL);
-	desc = load_description(id);
-	if (!desc)
-		desc = "\0";
-	gtk_text_buffer_set_text(desc_buf, desc, -1);
+	gtk_text_buffer_set_text(desc_buf, (lw->data.description) ?
+			lw->data.description : "\0", -1);
 	gtk_text_view_set_buffer(GTK_TEXT_VIEW(w->description), desc_buf);
 
 	hours = atoi(time_str);
@@ -321,6 +291,8 @@ static struct list_w *create_list_widget(struct widgets *w,
 	lw->hours = gtk_entry_new();
 	lw->edit = gtk_button_new_with_label("Edit");
 
+	lw->data.description = NULL;
+
 	gtk_editable_set_editable(GTK_EDITABLE(lw->company), false);
 	gtk_editable_set_editable(GTK_EDITABLE(lw->project), false);
 	gtk_editable_set_editable(GTK_EDITABLE(lw->sub_project), false);
@@ -387,6 +359,8 @@ static void cb_save(GtkButton *button, struct widgets *w)
 	gtk_text_buffer_get_start_iter(desc_buf, &start);
 	gtk_text_buffer_get_end_iter(desc_buf, &end);
 	desc = gtk_text_buffer_get_text(desc_buf, &start, &end, true);
+	if (desc && strlen(desc) > 0)
+		lw->data.description = strdup(desc);
 
 	gtk_widget_set_tooltip_text(lw->hbox, desc);
 	seconds_to_hms(&h, &m, &s);
@@ -482,6 +456,7 @@ static void load_tempi(struct widgets *w)
 		int rsize;
 		struct list_w *lw;
 		const char *date;
+		const char *desc;
 		const char *pkbuf = tclistval(res, i, &rsize);
 		TCMAP *cols = tctdbget(tdb, pkbuf, rsize);
 
@@ -501,8 +476,12 @@ static void load_tempi(struct widgets *w)
 					"sub_project"));
 		gtk_entry_set_text(GTK_ENTRY(lw->hours), tcmapget2(cols,
 					"hours"));
-		gtk_widget_set_tooltip_text(lw->hbox, tcmapget2(cols,
-					"description"));
+
+		desc = tcmapget2(cols, "description");
+		if (desc && strlen(desc) > 0) {
+			gtk_widget_set_tooltip_text(lw->hbox, desc);
+			lw->data.description = strdup(desc);
+		}
 
 		tcmapdel(cols);
 		g_tree_replace(tempi, strdup(pkbuf), lw);
