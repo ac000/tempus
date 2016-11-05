@@ -28,6 +28,9 @@
 
 #define APP_NAME	"Tempus"
 
+struct _data {
+};
+
 struct widgets {
 	GtkWidget *window;
 	GtkWidget *list_box;
@@ -53,6 +56,8 @@ struct list_w {
 	GtkWidget *hours;
 	GtkWidget *description;
 	GtkWidget *edit;
+
+	struct _data data;
 };
 
 enum timer_states { TIMER_STOPPED = 0, TIMER_RUNNING };
