@@ -98,6 +98,22 @@ static bool is_today(const char *date)
 		return true;
 }
 
+static bool override_unsaved_recording(struct widgets *w)
+{
+	int ret = true;
+
+	if (unsaved_recording) {
+		int response = gtk_dialog_run(GTK_DIALOG(w->dialog));
+
+		if (response == GTK_RESPONSE_CANCEL)
+			ret = false;
+
+		gtk_widget_hide(w->dialog);
+	}
+
+	return ret;
+}
+
 static void free_lw(gpointer data)
 {
 	struct list_w *lw = data;
@@ -153,16 +169,8 @@ static bool do_timer(struct widgets *w)
 
 void cb_quit(GtkButton *button, struct widgets *w)
 {
-	if (unsaved_recording) {
-		int response = gtk_dialog_run(GTK_DIALOG(w->dialog));
-
-		if (response == GTK_RESPONSE_CANCEL) {
-			gtk_widget_hide(w->dialog);
-			return;
-		}
-	}
-
-	gtk_main_quit();
+	if (override_unsaved_recording(w))
+		gtk_main_quit();
 }
 
 static void cb_stop_timer(GtkButton *button, struct widgets *w)
@@ -212,6 +220,11 @@ static void cb_edit(GtkButton *button, struct widgets *w)
 	int minutes;
 	int seconds;
 
+	if (!override_unsaved_recording(w))
+		return;
+	else
+		unsaved_recording = false;
+
 	gtk_widget_set_sensitive(w->save, false);
 	gtk_widget_set_sensitive(w->new, false);
 
@@ -244,6 +257,11 @@ static void cb_new(GtkButton *button, struct widgets *w)
 {
 	uuid_t uuid;
 	GtkTextBuffer *desc_buf;
+
+	if (!override_unsaved_recording(w))
+		return;
+	else
+		unsaved_recording = false;
 
 	gtk_widget_set_sensitive(w->save, false);
 	gtk_widget_set_sensitive(w->new, false);
