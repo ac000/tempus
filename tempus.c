@@ -46,6 +46,7 @@ struct widgets {
 	GtkWidget *project;
 	GtkWidget *sub_project;
 	GtkWidget *description;
+	GtkWidget *dialog;
 };
 
 struct list_w {
@@ -66,6 +67,7 @@ enum timer_states { TIMER_STOPPED = 0, TIMER_RUNNING };
 /* Set this to the number of seconds past midnight a new day should start */
 static const int new_day_offset = 16200; /* 0430 */
 
+static bool unsaved_recording;
 static bool todays_date_hdr_displayed;
 static int timer_state = TIMER_STOPPED;
 static double elapsed_seconds;
@@ -149,6 +151,20 @@ static bool do_timer(struct widgets *w)
 	return true;
 }
 
+void cb_quit(GtkButton *button, struct widgets *w)
+{
+	if (unsaved_recording) {
+		int response = gtk_dialog_run(GTK_DIALOG(w->dialog));
+
+		if (response == GTK_RESPONSE_CANCEL) {
+			gtk_widget_hide(w->dialog);
+			return;
+		}
+	}
+
+	gtk_main_quit();
+}
+
 static void cb_stop_timer(GtkButton *button, struct widgets *w)
 {
 	timer_state = TIMER_STOPPED;
@@ -182,6 +198,8 @@ static void cb_start_timer(GtkButton *button, struct widgets *w)
 	gtk_widget_set_sensitive(w->stop, true);
 	gtk_widget_set_sensitive(w->save, false);
 	gtk_widget_set_sensitive(w->new, false);
+
+	unsaved_recording = true;
 }
 
 static void cb_edit(GtkButton *button, struct widgets *w)
@@ -392,6 +410,8 @@ static void cb_save(GtkButton *button, struct widgets *w)
 	tcmapdel(cols);
 	tctdbclose(tdb);
 	tctdbdel(tdb);
+
+	unsaved_recording = false;
 }
 
 static void get_widgets(struct widgets *w, GtkBuilder *builder)
@@ -411,6 +431,7 @@ static void get_widgets(struct widgets *w, GtkBuilder *builder)
 				"sub_project"));
 	w->description = GTK_WIDGET(gtk_builder_get_object(builder,
 				"description"));
+	w->dialog = GTK_WIDGET(gtk_builder_get_object(builder, "dialog"));
 
 	gtk_widget_set_sensitive(w->save, false);
 	gtk_widget_set_sensitive(w->new, false);
