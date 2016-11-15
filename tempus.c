@@ -226,7 +226,7 @@ static void cb_edit(GtkButton *button, struct widgets *w)
 		unsaved_recording = false;
 
 	gtk_widget_set_sensitive(w->save, false);
-	gtk_widget_set_sensitive(w->new, false);
+	gtk_widget_set_sensitive(w->new, true);
 
 	gtk_entry_set_text(GTK_ENTRY(w->company), gtk_entry_get_text(
 				GTK_ENTRY(lw->company)));
