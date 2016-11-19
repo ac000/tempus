@@ -47,6 +47,8 @@ struct widgets {
 	GtkWidget *sub_project;
 	GtkWidget *description;
 	GtkWidget *dialog;
+
+	GtkListStore *companies;
 };
 
 struct list_w {
@@ -450,6 +452,8 @@ static void get_widgets(struct widgets *w, GtkBuilder *builder)
 	w->description = GTK_WIDGET(gtk_builder_get_object(builder,
 				"description"));
 	w->dialog = GTK_WIDGET(gtk_builder_get_object(builder, "dialog"));
+	w->companies = GTK_LIST_STORE(gtk_builder_get_object(builder,
+				"companies"));
 
 	gtk_widget_set_sensitive(w->save, false);
 	gtk_widget_set_sensitive(w->new, false);
@@ -460,6 +464,17 @@ static void get_widgets(struct widgets *w, GtkBuilder *builder)
 				cb_stop_timer), w);
 	g_signal_connect(G_OBJECT(w->save), "clicked", G_CALLBACK(cb_save), w);
 	g_signal_connect(G_OBJECT(w->new), "clicked", G_CALLBACK(cb_new), w);
+}
+
+static int store_company_name(gpointer key, gpointer value, gpointer data)
+{
+	struct widgets *w = (struct widgets *)data;
+	GtkTreeIter iter;
+
+	gtk_list_store_append(w->companies, &iter);
+	gtk_list_store_set(w->companies, &iter, 0, (char *)key, -1);
+
+	return 0;
 }
 
 static void set_tempi_store(void)
@@ -481,6 +496,14 @@ static void load_tempi(struct widgets *w)
 	char prev_date[11] = "\0";
 	int nr_items;
 	int i;
+	GTree *companies;
+
+	/*
+	 * Get the list of company names to store for the company entry auto
+	 * completion. This will be automatically deduplicated and sorted.
+	 */
+	companies = g_tree_new_full((GCompareDataFunc)g_ascii_strcasecmp, NULL,
+			free, NULL);
 
 	set_tempi_store();
 
@@ -496,6 +519,7 @@ static void load_tempi(struct widgets *w)
 		struct list_w *lw;
 		const char *date;
 		const char *desc;
+		const char *comp;
 		const char *pkbuf = tclistval(res, i, &rsize);
 		TCMAP *cols = tctdbget(tdb, pkbuf, rsize);
 
@@ -507,8 +531,8 @@ static void load_tempi(struct widgets *w)
 		snprintf(prev_date, sizeof(prev_date), "%s", date);
 
 		lw = create_list_widget(w, pkbuf);
-		gtk_entry_set_text(GTK_ENTRY(lw->company), tcmapget2(cols,
-					"company"));
+		comp = tcmapget2(cols, "company");
+		gtk_entry_set_text(GTK_ENTRY(lw->company), comp);
 		gtk_entry_set_text(GTK_ENTRY(lw->project), tcmapget2(cols,
 					"project"));
 		gtk_entry_set_text(GTK_ENTRY(lw->sub_project), tcmapget2(cols,
@@ -522,6 +546,9 @@ static void load_tempi(struct widgets *w)
 			lw->data.description = strdup(desc);
 		}
 
+		if (strlen(comp) > 0)
+			g_tree_replace(companies, strdup(comp), NULL);
+
 		tcmapdel(cols);
 		g_tree_replace(tempi, strdup(pkbuf), lw);
 
@@ -532,6 +559,9 @@ static void load_tempi(struct widgets *w)
 				false, 0);
 		gtk_widget_show_all(lw->hbox);
 	}
+
+	g_tree_foreach(companies, store_company_name, w);
+	g_tree_destroy(companies);
 
 	tclistdel(res);
 	tctdbqrydel(qry);

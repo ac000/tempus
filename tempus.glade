@@ -17,6 +17,23 @@
     <property name="step_increment">1</property>
     <property name="page_increment">4</property>
   </object>
+  <object class="GtkListStore" id="companies">
+    <columns>
+      <!-- column-name company -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
+  <object class="GtkEntryCompletion" id="company_completion">
+    <property name="model">companies</property>
+    <property name="text_column">0</property>
+    <property name="inline_completion">True</property>
+    <child>
+      <object class="GtkCellRendererText"/>
+      <attributes>
+        <attribute name="text">0</attribute>
+      </attributes>
+    </child>
+  </object>
   <object class="GtkWindow" id="window">
     <property name="width_request">800</property>
     <property name="height_request">320</property>
@@ -125,6 +142,7 @@
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="placeholder_text" translatable="yes">company</property>
+                        <property name="completion">company_completion</property>
                       </object>
                       <packing>
                         <property name="expand">False</property>
