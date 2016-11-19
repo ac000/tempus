@@ -435,40 +435,6 @@ static void cb_save(GtkButton *button, struct widgets *w)
 	unsaved_recording = false;
 }
 
-static void get_widgets(struct widgets *w, GtkBuilder *builder)
-{
-	w->window = GTK_WIDGET(gtk_builder_get_object(builder, "window"));
-	w->list_box = GTK_WIDGET(gtk_builder_get_object(builder, "list_box"));
-	w->save = GTK_WIDGET(gtk_builder_get_object(builder, "save"));
-	w->new = GTK_WIDGET(gtk_builder_get_object(builder, "new"));
-	w->hours = GTK_WIDGET(gtk_builder_get_object(builder, "hours"));
-	w->minutes = GTK_WIDGET(gtk_builder_get_object(builder, "minutes"));
-	w->seconds = GTK_WIDGET(gtk_builder_get_object(builder, "seconds"));
-	w->start = GTK_WIDGET(gtk_builder_get_object(builder, "start"));
-	w->stop = GTK_WIDGET(gtk_builder_get_object(builder, "stop"));
-	w->company = GTK_WIDGET(gtk_builder_get_object(builder, "company"));
-	w->project = GTK_WIDGET(gtk_builder_get_object(builder, "project"));
-	w->sub_project = GTK_WIDGET(gtk_builder_get_object(builder,
-				"sub_project"));
-	w->description = GTK_WIDGET(gtk_builder_get_object(builder,
-				"description"));
-	w->dialog = GTK_WIDGET(gtk_builder_get_object(builder, "dialog"));
-	w->companies = GTK_LIST_STORE(gtk_builder_get_object(builder,
-				"companies"));
-	w->projects = GTK_LIST_STORE(gtk_builder_get_object(builder,
-				"projects"));
-
-	gtk_widget_set_sensitive(w->save, false);
-	gtk_widget_set_sensitive(w->new, false);
-
-	g_signal_connect(G_OBJECT(w->start), "clicked", G_CALLBACK(
-				cb_start_timer), w);
-	g_signal_connect(G_OBJECT(w->stop), "clicked", G_CALLBACK(
-				cb_stop_timer), w);
-	g_signal_connect(G_OBJECT(w->save), "clicked", G_CALLBACK(cb_save), w);
-	g_signal_connect(G_OBJECT(w->new), "clicked", G_CALLBACK(cb_new), w);
-}
-
 static int store_project_name(gpointer key, gpointer value, gpointer data)
 {
 	struct widgets *w = (struct widgets *)data;
@@ -590,6 +556,40 @@ static void load_tempi(struct widgets *w)
 	tctdbqrydel(qry);
 	tctdbclose(tdb);
 	tctdbdel(tdb);
+}
+
+static void get_widgets(struct widgets *w, GtkBuilder *builder)
+{
+	w->window = GTK_WIDGET(gtk_builder_get_object(builder, "window"));
+	w->list_box = GTK_WIDGET(gtk_builder_get_object(builder, "list_box"));
+	w->save = GTK_WIDGET(gtk_builder_get_object(builder, "save"));
+	w->new = GTK_WIDGET(gtk_builder_get_object(builder, "new"));
+	w->hours = GTK_WIDGET(gtk_builder_get_object(builder, "hours"));
+	w->minutes = GTK_WIDGET(gtk_builder_get_object(builder, "minutes"));
+	w->seconds = GTK_WIDGET(gtk_builder_get_object(builder, "seconds"));
+	w->start = GTK_WIDGET(gtk_builder_get_object(builder, "start"));
+	w->stop = GTK_WIDGET(gtk_builder_get_object(builder, "stop"));
+	w->company = GTK_WIDGET(gtk_builder_get_object(builder, "company"));
+	w->project = GTK_WIDGET(gtk_builder_get_object(builder, "project"));
+	w->sub_project = GTK_WIDGET(gtk_builder_get_object(builder,
+				"sub_project"));
+	w->description = GTK_WIDGET(gtk_builder_get_object(builder,
+				"description"));
+	w->dialog = GTK_WIDGET(gtk_builder_get_object(builder, "dialog"));
+	w->companies = GTK_LIST_STORE(gtk_builder_get_object(builder,
+				"companies"));
+	w->projects = GTK_LIST_STORE(gtk_builder_get_object(builder,
+				"projects"));
+
+	gtk_widget_set_sensitive(w->save, false);
+	gtk_widget_set_sensitive(w->new, false);
+
+	g_signal_connect(G_OBJECT(w->start), "clicked", G_CALLBACK(
+				cb_start_timer), w);
+	g_signal_connect(G_OBJECT(w->stop), "clicked", G_CALLBACK(
+				cb_stop_timer), w);
+	g_signal_connect(G_OBJECT(w->save), "clicked", G_CALLBACK(cb_save), w);
+	g_signal_connect(G_OBJECT(w->new), "clicked", G_CALLBACK(cb_new), w);
 }
 
 int main(int argc, char **argv)
