@@ -67,6 +67,23 @@ struct list_w {
 
 enum timer_states { TIMER_STOPPED = 0, TIMER_RUNNING };
 
+struct d_o_w {
+	const char *day_full;
+	const char *day_abr;
+};
+
+static const struct d_o_w days_of_week[] = {
+	{ (const char *)NULL, (const char *)NULL },
+	{ "Monday",	"Mo" },
+	{ "Tuesday",	"Tu" },
+	{ "Wednesday",	"We" },
+	{ "Thursday",	"Th" },
+	{ "Friday",	"Fr" },
+	{ "Saturday",	"Sa" },
+	{ "Sunday",	"Su"},
+	{ }
+};
+
 /* Set this to the number of seconds past midnight a new day should start */
 static const int new_day_offset = 16200; /* 0430 */
 
@@ -86,6 +103,15 @@ static void seconds_to_hms(double *hours, double *minutes, double *seconds)
 	secs /= 60;
 	*minutes = secs % 60;
 	*hours = secs / 60;
+}
+
+static const char *get_day_of_week_abr(const char *date)
+{
+	GTimeZone *tz = g_time_zone_new_local();
+	GDateTime *dt = g_date_time_new(tz, atoi(date), atoi(date+5),
+			atoi(date+8), 0, 0, 0.0);
+
+	return days_of_week[g_date_time_get_day_of_week(dt)].day_abr;
 }
 
 static bool is_today(const char *date)
@@ -290,21 +316,25 @@ static void create_date_hdr(struct widgets *w, const char *date, bool reorder)
 {
 	GtkWidget *sep = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
 	GtkWidget *date_hdr = gtk_label_new(date);
+	const char *dow = get_day_of_week_abr(date);
+	char *markup;
 
 	if (is_today(date)) {
-		const char *fmt = "<span weight=\"bold\">\%s</span>";
-		char *markup;
+		const char *date_fmt = "<span weight=\"bold\">\%s</span> <span size=\"small\">(\%s)</span>";
 
-		markup = g_markup_printf_escaped(fmt, date);
+		markup = g_markup_printf_escaped(date_fmt, date, dow);
 		gtk_label_set_markup(GTK_LABEL(date_hdr), markup);
-		g_free(markup);
 
 		todays_date_hdr_displayed = true;
 	} else {
-		gtk_label_set_text(GTK_LABEL(date_hdr), date);
+		const char *date_fmt = "\%s <span size=\"small\">(\%s)</span>";
+
+		markup = g_markup_printf_escaped(date_fmt, date, dow);
+		gtk_label_set_markup(GTK_LABEL(date_hdr), markup);
 	}
 	gtk_widget_set_halign(date_hdr, GTK_ALIGN_START);
 	gtk_widget_set_margin_start(date_hdr, 10);
+	g_free(markup);
 
 	gtk_box_pack_start(GTK_BOX(w->list_box), sep, false, false, 5);
 	gtk_box_pack_start(GTK_BOX(w->list_box), date_hdr, false, false, 0);
