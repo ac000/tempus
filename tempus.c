@@ -95,6 +95,14 @@ static GTree *tempi;
 static char tempi_store[PATH_MAX];
 static char tempus_id[37];	/* 36 char UUID + '\0' */
 
+static void update_elapased_seconds(const struct widgets *w)
+{
+	elapsed_seconds =
+		gtk_spin_button_get_value(GTK_SPIN_BUTTON(w->hours)) * 3600 +
+		gtk_spin_button_get_value(GTK_SPIN_BUTTON(w->minutes)) * 60 +
+		gtk_spin_button_get_value(GTK_SPIN_BUTTON(w->seconds));
+}
+
 static void seconds_to_hms(double *hours, double *minutes, double *seconds)
 {
 	int secs = (int)elapsed_seconds;
@@ -222,10 +230,7 @@ static void cb_start_timer(GtkButton *button, struct widgets *w)
 	g_timeout_add(1000, (GSourceFunc)do_timer, w);
 
 	/* Take into account a possibly adjusted value */
-	elapsed_seconds =
-		gtk_spin_button_get_value(GTK_SPIN_BUTTON(w->hours)) * 3600 +
-		gtk_spin_button_get_value(GTK_SPIN_BUTTON(w->minutes)) * 60 +
-		gtk_spin_button_get_value(GTK_SPIN_BUTTON(w->seconds));
+	update_elapased_seconds(w);
 
 	gtk_editable_set_editable(GTK_EDITABLE(w->hours), false);
 	gtk_editable_set_editable(GTK_EDITABLE(w->minutes), false);
@@ -432,6 +437,8 @@ static void cb_save(GtkButton *button, struct widgets *w)
 		lw->data.description = strdup(desc);
 
 	gtk_widget_set_tooltip_text(lw->hbox, desc);
+
+	update_elapased_seconds(w);
 	seconds_to_hms(&h, &m, &s);
 	snprintf(hours, sizeof(hours), "%02g:%02g:%02g", h, m, s);
 	gtk_entry_set_text(GTK_ENTRY(lw->hours), hours);
