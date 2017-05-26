@@ -1,7 +1,7 @@
 /*
  * tempus.c -	Time tracking tool
  *
- * Copyright (C) 2016	Andrew Clayton <andrew@digital-domain.net>
+ * Copyright (C) 2016 - 2017	Andrew Clayton <andrew@digital-domain.net>
  *
  * Licensed under the GNU General Public License V2
  * See COPYING
@@ -469,6 +469,7 @@ static void cb_save(GtkButton *button, struct widgets *w)
 	tctdbclose(tdb);
 	tctdbdel(tdb);
 
+	update_window_title(w);
 	unsaved_recording = false;
 }
 
