@@ -81,7 +81,8 @@ static bool do_timer(struct widgets *w)
 	return true;
 }
 
-static void cb_stop_timer(GtkButton *button, struct widgets *w)
+static void cb_stop_timer(GtkButton *button __attribute__((unused)),
+			  struct widgets *w)
 {
 	gtk_widget_set_sensitive(w->start, true);
 	gtk_widget_set_sensitive(w->stop, false);
@@ -93,7 +94,8 @@ static void cb_stop_timer(GtkButton *button, struct widgets *w)
 	timer_state = TIMER_STOPPED;
 }
 
-static void cb_start_timer(GtkButton *button, struct widgets *w)
+static void cb_start_timer(GtkButton *button __attribute__((unused)),
+			   struct widgets *w)
 {
 	gtk_widget_set_sensitive(w->start, false);
 	gtk_widget_set_sensitive(w->stop, true);
