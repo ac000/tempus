@@ -204,13 +204,14 @@ static bool do_timer(struct widgets *w)
 	return true;
 }
 
-void cb_quit(GtkButton *button, struct widgets *w)
+void cb_quit(GtkButton *button __attribute__((unused)), struct widgets *w)
 {
 	if (override_unsaved_recording(w))
 		gtk_main_quit();
 }
 
-static void cb_stop_timer(GtkButton *button, struct widgets *w)
+static void cb_stop_timer(GtkButton *button __attribute__((unused)),
+			  struct widgets *w)
 {
 	timer_state = TIMER_STOPPED;
 
@@ -224,7 +225,8 @@ static void cb_stop_timer(GtkButton *button, struct widgets *w)
 	gtk_editable_set_editable(GTK_EDITABLE(w->seconds), true);
 }
 
-static void cb_start_timer(GtkButton *button, struct widgets *w)
+static void cb_start_timer(GtkButton *button __attribute__((unused)),
+			   struct widgets *w)
 {
 	timer_state = TIMER_RUNNING;
 	g_timeout_add(1000, (GSourceFunc)do_timer, w);
@@ -287,7 +289,8 @@ static void cb_edit(GtkButton *button, struct widgets *w)
 	snprintf(tempus_id, sizeof(tempus_id), "%s", id);
 }
 
-static void cb_new(GtkButton *button, struct widgets *w)
+static void cb_new(GtkButton *button __attribute__((unused)),
+		   struct widgets *w)
 {
 	uuid_t uuid;
 	GtkTextBuffer *desc_buf;
@@ -398,7 +401,8 @@ static struct list_w *create_list_widget(struct widgets *w,
 	return lw;
 }
 
-static void cb_save(GtkButton *button, struct widgets *w)
+static void cb_save(GtkButton *button __attribute__((unused)),
+		    struct widgets *w)
 {
 	time_t now = time(NULL) - new_day_offset;
 	struct tm *tm = localtime(&now);
@@ -473,7 +477,9 @@ static void cb_save(GtkButton *button, struct widgets *w)
 	unsaved_recording = false;
 }
 
-static int store_project_name(gpointer key, gpointer value, gpointer data)
+static int store_project_name(gpointer key,
+			      gpointer value __attribute__((unused)),
+			      gpointer data)
 {
 	struct widgets *w = (struct widgets *)data;
 	GtkTreeIter iter;
@@ -484,7 +490,9 @@ static int store_project_name(gpointer key, gpointer value, gpointer data)
 	return 0;
 }
 
-static int store_company_name(gpointer key, gpointer value, gpointer data)
+static int store_company_name(gpointer key,
+			      gpointer value __attribute__((unused)),
+			      gpointer data)
 {
 	struct widgets *w = (struct widgets *)data;
 	GtkTreeIter iter;
