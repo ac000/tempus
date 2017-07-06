@@ -80,8 +80,7 @@ static const struct d_o_w days_of_week[] = {
 	{ "Thursday",	"Th" },
 	{ "Friday",	"Fr" },
 	{ "Saturday",	"Sa" },
-	{ "Sunday",	"Su"},
-	{ }
+	{ "Sunday",	"Su"}
 };
 
 /* Set this to the number of seconds past midnight a new day should start */
