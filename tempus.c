@@ -14,6 +14,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
+#include <unistd.h>
 #include <time.h>
 #include <linux/limits.h>
 
@@ -86,6 +87,7 @@ static const struct d_o_w days_of_week[] = {
 /* Set this to the number of seconds past midnight a new day should start */
 static const int new_day_offset = 16200; /* 0430 */
 
+static bool show_all;
 static bool unsaved_recording;
 static bool todays_date_hdr_displayed;
 static int timer_state = TIMER_STOPPED;
@@ -93,6 +95,13 @@ static double elapsed_seconds;
 static GTree *tempi;
 static char tempi_store[PATH_MAX];
 static char tempus_id[37];	/* 36 char UUID + '\0' */
+
+static void disp_usage(void)
+{
+	printf("Usage: tempus [-a]\n\n");
+	printf("Pass -a to show all log entries. Otherwise only the last 90 "
+			"days are shown.\n");
+}
 
 static void update_elapased_seconds(const struct widgets *w)
 {
@@ -581,7 +590,7 @@ static void load_tempi(struct widgets *w)
 
 		tcmapiterinit(cols);
 		date = tcmapget2(cols, "date");
-		if (!entry_show(date)) {
+		if (!show_all && !entry_show(date)) {
 			tcmapdel(cols);
 			continue;
 		}
@@ -673,6 +682,25 @@ int main(int argc, char **argv)
 	GError *error = NULL;
 	struct widgets *widgets;
 	uuid_t uuid;
+	int optind;
+
+	while ((optind = getopt(argc, argv, "ah")) != -1) {
+		switch (optind) {
+		case 'a':
+			show_all = true;
+			break;
+		case 'h':
+			disp_usage();
+			exit(EXIT_SUCCESS);
+		default:
+			disp_usage();
+			exit(EXIT_FAILURE);
+		}
+	}
+	if (optind >= argc) {
+		disp_usage();
+		exit(EXIT_FAILURE);
+	}
 
 	gtk_init(&argc, &argv);
 
