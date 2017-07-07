@@ -134,6 +134,32 @@ static bool is_today(const char *date)
 		return true;
 }
 
+static bool entry_show(const char *date)
+{
+	GDate *today;
+	GDate *then;
+	struct tm tm;
+	int days;
+	bool ret = true;
+
+	memset(&tm, 0, sizeof(struct tm));
+	strptime(date, "%F", &tm);
+
+	today = g_date_new();
+	g_date_set_time_t(today, time(NULL));
+	then = g_date_new_dmy(tm.tm_mday, tm.tm_mon + 1, tm.tm_year + 1900);
+
+	days = g_date_days_between(then, today);
+	/* Don't show log entries older than 90 days */
+	if (days > 90)
+		ret = false;
+
+	g_date_free(today);
+	g_date_free(then);
+
+	return ret;
+}
+
 static bool override_unsaved_recording(struct widgets *w)
 {
 	int ret = true;
@@ -555,6 +581,10 @@ static void load_tempi(struct widgets *w)
 
 		tcmapiterinit(cols);
 		date = tcmapget2(cols, "date");
+		if (!entry_show(date)) {
+			tcmapdel(cols);
+			continue;
+		}
 
 		if (strcmp(prev_date, date) != 0)
 			create_date_hdr(w, date, false);
