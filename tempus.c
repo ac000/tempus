@@ -134,10 +134,14 @@ static bool is_today(const char *date)
 {
 	time_t now = time(NULL) - new_day_offset;
 	struct tm *tm = localtime(&now);
+	struct tm then;
 
-	if (atoi(date) != tm->tm_year + 1900 ||
-	    atoi(date + 5) != tm->tm_mon + 1 ||
-	    atoi(date + 8) != tm->tm_mday)
+	memset(&then, 0, sizeof(struct tm));
+	strptime(date, "%F", &then);
+
+	if (then.tm_year != tm->tm_year ||
+	    then.tm_mon != tm->tm_mon ||
+	    then.tm_mday != tm->tm_mday)
 		return false;
 	else
 		return true;
