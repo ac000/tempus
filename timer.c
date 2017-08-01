@@ -2,7 +2,7 @@
  * timer.c -	A simple timer counting upwards from 0 split out into
  *		hours, minutes & seconds.
  *
- * Copyright (C) 2016	Andrew Clayton <andrew@digital-domain.net>
+ * Copyright (C) 2016 - 2017	Andrew Clayton <andrew@digital-domain.net>
  *
  * Licensed under the GNU General Public License V2
  * See COPYING
@@ -15,6 +15,8 @@
 #include <glib.h>
 
 #include <gtk/gtk.h>
+
+#include "short_types.h"
 
 #define APP_NAME	"Tempus - timer"
 
@@ -30,28 +32,31 @@ struct widgets {
 enum timer_states { TIMER_STOPPED = 0, TIMER_RUNNING };
 
 static int timer_state = TIMER_STOPPED;
-static double elapsed_seconds;
+static u32 elapsed_seconds;
 
-static void seconds_to_hms(double *hours, double *minutes, double *seconds)
+static void seconds_to_hms(u32 *hours, u32 *minutes, u32 *seconds)
 {
-	int secs = (int)elapsed_seconds;
+	u32 secs = elapsed_seconds;
 
 	*seconds = secs % 60;
 	secs /= 60;
 	*minutes = secs % 60;
 	*hours = secs / 60;
+
+	if (*hours > 99)
+		*hours = 99;
 }
 
 static void update_window_title(struct widgets *w)
 {
-	double hours;
-	double minutes;
-	double seconds;
+	u32 hours;
+	u32 minutes;
+	u32 seconds;
 	char title[32];
 
 	seconds_to_hms(&hours, &minutes, &seconds);
 
-	snprintf(title, sizeof(title), "%s [%s%02g:%02g:%02g]", APP_NAME,
+	snprintf(title, sizeof(title), "%s [%s%02u:%02u:%02u]", APP_NAME,
 			(timer_state == TIMER_RUNNING) ? "Rec - " : "",
 			hours, minutes, seconds);
 	gtk_window_set_title(GTK_WINDOW(w->window), title);
@@ -59,9 +64,9 @@ static void update_window_title(struct widgets *w)
 
 static bool do_timer(struct widgets *w)
 {
-	double hours;
-	double minutes;
-	double seconds;
+	u32 hours;
+	u32 minutes;
+	u32 seconds;
 
 	if (timer_state == TIMER_STOPPED) {
 		update_window_title(w);
