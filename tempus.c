@@ -27,6 +27,8 @@
 
 #include <gtk/gtk.h>
 
+#include "short_types.h"
+
 #define APP_NAME	"Tempus"
 
 struct _data {
@@ -91,7 +93,7 @@ static bool show_all;
 static bool unsaved_recording;
 static bool todays_date_hdr_displayed;
 static int timer_state = TIMER_STOPPED;
-static double elapsed_seconds;
+static u32 elapsed_seconds;
 static GTree *tempi;
 static char tempi_store[PATH_MAX];
 static char tempus_id[37];	/* 36 char UUID + '\0' */
@@ -111,14 +113,18 @@ static void update_elapased_seconds(const struct widgets *w)
 		gtk_spin_button_get_value(GTK_SPIN_BUTTON(w->seconds));
 }
 
-static void seconds_to_hms(double *hours, double *minutes, double *seconds)
+static void seconds_to_hms(u32 *hours, u32 *minutes, u32 *seconds)
 {
-	int secs = (int)elapsed_seconds;
+	u32 secs = elapsed_seconds;
 
 	*seconds = secs % 60;
 	secs /= 60;
 	*minutes = secs % 60;
 	*hours = secs / 60;
+
+	/* Really this shouldn't be more than 24... */
+	if (*hours > 99)
+		*hours = 99;
 }
 
 static const char *get_day_of_week_abr(const char *date)
@@ -200,14 +206,14 @@ static void free_lw(gpointer data)
 
 static void update_window_title(struct widgets *w)
 {
-	double hours;
-	double minutes;
-	double seconds;
+	u32 hours;
+	u32 minutes;
+	u32 seconds;
 	char title[128];
 
 	seconds_to_hms(&hours, &minutes, &seconds);
 
-	snprintf(title, sizeof(title), "%s [%s%02g:%02g:%02g - %s / %s / %s]",
+	snprintf(title, sizeof(title), "%s [%s%02u:%02u:%02u - %s / %s / %s]",
 			APP_NAME,
 			(timer_state == TIMER_RUNNING) ? "Rec - " : "",
 			hours, minutes, seconds,
@@ -220,9 +226,9 @@ static void update_window_title(struct widgets *w)
 
 static bool do_timer(struct widgets *w)
 {
-	double hours;
-	double minutes;
-	double seconds;
+	u32 hours;
+	u32 minutes;
+	u32 seconds;
 
 	if (timer_state == TIMER_STOPPED) {
 		update_window_title(w);
@@ -448,12 +454,12 @@ static void cb_save(GtkButton *button __attribute__((unused)),
 	GtkTextBuffer *desc_buf;
 	GtkTextIter start;
 	GtkTextIter end;
-	double h;
-	double m;
-	double s;
+	u32 h;
+	u32 m;
+	u32 s;
 	int pksize;
 	char pkbuf[256];
-	char hours[10];
+	char hours[9];
 	char date[11];
 	const char *desc;
 	TCTDB *tdb;
@@ -482,7 +488,7 @@ static void cb_save(GtkButton *button __attribute__((unused)),
 
 	update_elapased_seconds(w);
 	seconds_to_hms(&h, &m, &s);
-	snprintf(hours, sizeof(hours), "%02g:%02g:%02g", h, m, s);
+	snprintf(hours, sizeof(hours), "%02u:%02u:%02u", h, m, s);
 	gtk_entry_set_text(GTK_ENTRY(lw->hours), hours);
 
 	g_tree_replace(tempi, strdup(tempus_id), lw);
