@@ -31,6 +31,8 @@
 
 #define APP_NAME	"Tempus"
 
+#define REC_BTN		"\342\217\272" /* U+23FA BLACK CIRCLE FOR RECORD */
+
 struct _data {
 	char *description;
 };
@@ -213,8 +215,8 @@ static void update_window_title(struct widgets *w)
 
 	seconds_to_hms(&hours, &minutes, &seconds);
 
-	snprintf(title, sizeof(title), "%s [%s%02u:%02u:%02u - %s / %s / %s]",
-			APP_NAME,
+	snprintf(title, sizeof(title), "%s%s [%s%02u:%02u:%02u - %s / %s / %s]",
+			(timer_state == TIMER_RUNNING) ? REC_BTN: "", APP_NAME,
 			(timer_state == TIMER_RUNNING) ? "Rec - " : "",
 			hours, minutes, seconds,
 			gtk_entry_get_text(GTK_ENTRY(w->company)),
