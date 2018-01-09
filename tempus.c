@@ -410,7 +410,9 @@ static struct list_w *create_list_widget(struct widgets *w,
 	lw->hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 	lw->company = gtk_entry_new();
 	lw->project = gtk_entry_new();
+	gtk_entry_set_width_chars(GTK_ENTRY(lw->project), 25);
 	lw->sub_project = gtk_entry_new();
+	gtk_entry_set_width_chars(GTK_ENTRY(lw->sub_project), 25);
 	lw->hours = gtk_entry_new();
 	lw->edit = gtk_button_new_with_label("Edit");
 

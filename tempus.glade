@@ -158,6 +158,7 @@
                       <object class="GtkEntry" id="company">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="width_chars">35</property>
                         <property name="placeholder_text" translatable="yes">company</property>
                         <property name="completion">company_completion</property>
                       </object>
@@ -171,6 +172,7 @@
                       <object class="GtkEntry" id="project">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="width_chars">35</property>
                         <property name="placeholder_text" translatable="yes">project</property>
                         <property name="completion">projects_completion</property>
                       </object>
@@ -184,6 +186,7 @@
                       <object class="GtkEntry" id="sub_project">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="width_chars">35</property>
                         <property name="placeholder_text" translatable="yes">sub-project</property>
                       </object>
                       <packing>
