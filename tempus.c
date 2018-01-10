@@ -55,6 +55,7 @@ struct widgets {
 
 	GtkListStore *companies;
 	GtkListStore *projects;
+	GtkListStore *sub_projects;
 };
 
 struct list_w {
@@ -525,6 +526,19 @@ static void cb_save(GtkButton *button __attribute__((unused)),
 	unsaved_recording = false;
 }
 
+static int store_sub_project_name(gpointer key,
+				  gpointer value __attribute__((unused)),
+				  gpointer data)
+{
+	struct widgets *w = (struct widgets *)data;
+	GtkTreeIter iter;
+
+	gtk_list_store_append(w->sub_projects, &iter);
+	gtk_list_store_set(w->sub_projects, &iter, 0, (char *)key, -1);
+
+	return 0;
+}
+
 static int store_project_name(gpointer key,
 			      gpointer value __attribute__((unused)),
 			      gpointer data)
@@ -572,16 +586,19 @@ static void load_tempi(struct widgets *w)
 	int i;
 	GTree *companies;
 	GTree *projects;
+	GTree *sub_projects;
 
 	/*
-	 * Get the list of company & project names to store for the company &
-	 * project entry auto completions. These will be automatically
-	 * deduplicated and sorted.
+	 * Get the list of company, project & sub project names to store
+	 * for the accompanying entry auto completions. These will be
+	 * automatically de-duplicated and sorted.
 	 */
 	companies = g_tree_new_full((GCompareDataFunc)g_ascii_strcasecmp, NULL,
 			free, NULL);
 	projects = g_tree_new_full((GCompareDataFunc)g_ascii_strcasecmp, NULL,
 			free, NULL);
+	sub_projects = g_tree_new_full((GCompareDataFunc)g_ascii_strcasecmp,
+			NULL, free, NULL);
 
 	set_tempi_store();
 
@@ -599,6 +616,7 @@ static void load_tempi(struct widgets *w)
 		const char *desc;
 		const char *comp;
 		const char *proj;
+		const char *sub_proj;
 		const char *pkbuf = tclistval(res, i, &rsize);
 		TCMAP *cols = tctdbget(tdb, pkbuf, rsize);
 
@@ -618,8 +636,8 @@ static void load_tempi(struct widgets *w)
 		gtk_entry_set_text(GTK_ENTRY(lw->company), comp);
 		proj = tcmapget2(cols, "project");
 		gtk_entry_set_text(GTK_ENTRY(lw->project), proj);
-		gtk_entry_set_text(GTK_ENTRY(lw->sub_project), tcmapget2(cols,
-					"sub_project"));
+		sub_proj = tcmapget2(cols, "sub_project");
+		gtk_entry_set_text(GTK_ENTRY(lw->sub_project), sub_proj);
 		gtk_entry_set_text(GTK_ENTRY(lw->hours), tcmapget2(cols,
 					"hours"));
 
@@ -633,6 +651,8 @@ static void load_tempi(struct widgets *w)
 			g_tree_replace(companies, strdup(comp), NULL);
 		if (strlen(proj) > 0)
 			g_tree_replace(projects, strdup(proj), NULL);
+		if (strlen(sub_proj) > 0)
+			g_tree_replace(sub_projects, strdup(sub_proj), NULL);
 
 		tcmapdel(cols);
 		g_tree_replace(tempi, strdup(pkbuf), lw);
@@ -647,8 +667,10 @@ static void load_tempi(struct widgets *w)
 
 	g_tree_foreach(companies, store_company_name, w);
 	g_tree_foreach(projects, store_project_name, w);
+	g_tree_foreach(sub_projects, store_sub_project_name, w);
 	g_tree_destroy(companies);
 	g_tree_destroy(projects);
+	g_tree_destroy(sub_projects);
 
 	tclistdel(res);
 	tctdbqrydel(qry);
@@ -678,6 +700,8 @@ static void get_widgets(struct widgets *w, GtkBuilder *builder)
 				"companies"));
 	w->projects = GTK_LIST_STORE(gtk_builder_get_object(builder,
 				"projects"));
+	w->sub_projects = GTK_LIST_STORE(gtk_builder_get_object(builder,
+				"sub_projects"));
 
 	gtk_widget_set_sensitive(w->save, false);
 	gtk_widget_set_sensitive(w->new, false);
