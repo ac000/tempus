@@ -152,8 +152,8 @@ static bool is_today(const char *date)
 	    then.tm_mon != tm->tm_mon ||
 	    then.tm_mday != tm->tm_mday)
 		return false;
-	else
-		return true;
+
+	return true;
 }
 
 static bool entry_show(const char *date)
