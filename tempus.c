@@ -100,6 +100,7 @@ static u32 elapsed_seconds;
 static GTree *tempi;
 static char tempi_store[PATH_MAX];
 static char tempus_id[37];	/* 36 char UUID + '\0' */
+static char last_date[11];	/* YYYY-MM-DD + '\0' */
 
 static void disp_usage(void)
 {
@@ -401,6 +402,8 @@ static void create_date_hdr(struct widgets *w, const char *date, bool reorder)
 
 	gtk_widget_show(sep);
 	gtk_widget_show(date_hdr);
+
+	snprintf(last_date, sizeof(last_date), "%s", date);
 }
 
 static struct list_w *create_list_widget(struct widgets *w,
@@ -472,7 +475,7 @@ static void cb_save(GtkButton *button __attribute__((unused)),
 
 	snprintf(date, sizeof(date), "%04d-%02d-%02d", tm->tm_year + 1900,
 			tm->tm_mon + 1, tm->tm_mday);
-	if (!todays_date_hdr_displayed)
+	if (!todays_date_hdr_displayed || strcmp(last_date, date) != 0)
 		create_date_hdr(w, date, true);
 
 	gtk_entry_set_text(GTK_ENTRY(lw->company), gtk_entry_get_text(
