@@ -570,7 +570,7 @@ static int store_company_name(gpointer key,
 
 static void set_tempi_store(void)
 {
-	char tempi_dir[PATH_MAX];
+	char tempi_dir[PATH_MAX - 11];	/* - length of "/tempus.tdb" */
 
 	snprintf(tempi_dir, sizeof(tempi_dir), "%s/.local/share/tempus",
 			getenv("HOME"));
