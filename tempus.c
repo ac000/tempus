@@ -473,8 +473,7 @@ static void cb_save(GtkButton *button __attribute__((unused)),
 	TCTDB *tdb;
 	TCMAP *cols;
 
-	snprintf(date, sizeof(date), "%04d-%02d-%02d", tm->tm_year + 1900,
-			tm->tm_mon + 1, tm->tm_mday);
+	strftime(date, sizeof(date), "%F", tm);	/* YYYY-MM-DD */
 	if (!todays_date_hdr_displayed || strcmp(last_date, date) != 0)
 		create_date_hdr(w, date, true);
 
