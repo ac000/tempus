@@ -228,7 +228,7 @@ static void update_window_title(struct widgets *w)
 	gtk_window_set_title(GTK_WINDOW(w->window), title);
 }
 
-static bool do_timer(struct widgets *w)
+static gboolean do_timer(struct widgets *w)
 {
 	u32 hours;
 	u32 minutes;
