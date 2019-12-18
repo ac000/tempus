@@ -2,7 +2,7 @@
  * timer.c -	A simple timer counting upwards from 0 split out into
  *		hours, minutes & seconds.
  *
- * Copyright (C) 2016 - 2017	Andrew Clayton <andrew@digital-domain.net>
+ * Copyright (C) 2016 - 2019	Andrew Clayton <andrew@digital-domain.net>
  *
  * Licensed under the GNU General Public License V2
  * See COPYING
@@ -52,7 +52,7 @@ static void update_window_title(struct widgets *w)
 	u32 hours;
 	u32 minutes;
 	u32 seconds;
-	char title[32];
+	char title[37];
 
 	seconds_to_hms(&hours, &minutes, &seconds);
 
