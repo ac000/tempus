@@ -1,7 +1,7 @@
 /*
  * tempus.c -	Time tracking tool
  *
- * Copyright (C) 2016 - 2017	Andrew Clayton <andrew@digital-domain.net>
+ * Copyright (C) 2016 - 2019	Andrew Clayton <andrew@digital-domain.net>
  *
  * Licensed under the GNU General Public License V2
  * See COPYING
@@ -595,12 +595,15 @@ static void load_tempi(struct widgets *w)
 	 * for the accompanying entry auto completions. These will be
 	 * automatically de-duplicated and sorted.
 	 */
-	companies = g_tree_new_full((GCompareDataFunc)g_ascii_strcasecmp, NULL,
-			free, NULL);
-	projects = g_tree_new_full((GCompareDataFunc)g_ascii_strcasecmp, NULL,
-			free, NULL);
-	sub_projects = g_tree_new_full((GCompareDataFunc)g_ascii_strcasecmp,
-			NULL, free, NULL);
+	companies = g_tree_new_full((GCompareDataFunc)
+				    (void (*)(void))g_ascii_strcasecmp, NULL,
+				    free, NULL);
+	projects = g_tree_new_full((GCompareDataFunc)
+				   (void (*)(void))g_ascii_strcasecmp, NULL,
+				   free, NULL);
+	sub_projects = g_tree_new_full((GCompareDataFunc)
+				       (void (*)(void))g_ascii_strcasecmp,
+				       NULL, free, NULL);
 
 	set_tempi_store();
 
@@ -755,8 +758,9 @@ int main(int argc, char **argv)
 	gtk_builder_connect_signals(builder, widgets);
 	g_object_unref(G_OBJECT(builder));
 
-	tempi = g_tree_new_full((GCompareDataFunc)g_ascii_strcasecmp, NULL,
-			free, free_lw);
+	tempi = g_tree_new_full((GCompareDataFunc)
+				(void (*)(void))g_ascii_strcasecmp, NULL, free,
+				free_lw);
 	load_tempi(widgets);
 
 	uuid_generate(uuid);
