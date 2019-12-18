@@ -467,7 +467,7 @@ static void cb_save(GtkButton *button __attribute__((unused)),
 	u32 s;
 	int pksize;
 	char pkbuf[256];
-	char hours[9];
+	char hours[14];
 	char date[11];
 	const char *desc;
 	TCTDB *tdb;
