@@ -89,6 +89,9 @@ static const struct d_o_w days_of_week[] = {
 	{ "Sunday",	"Su"}
 };
 
+/* Number of days to show history for */
+#define HISTORY_LIMIT	180
+
 /* Set this to the number of seconds past midnight a new day should start */
 static const int new_day_offset = 16200; /* 0430 */
 
@@ -173,8 +176,8 @@ static bool entry_show(const char *date)
 	then = g_date_new_dmy(tm.tm_mday, tm.tm_mon + 1, tm.tm_year + 1900);
 
 	days = g_date_days_between(then, today);
-	/* Don't show log entries older than 90 days */
-	if (days > 90)
+	/* Don't show log entries older than HISTORY_LIMIT days */
+	if (days > HISTORY_LIMIT)
 		ret = false;
 
 	g_date_free(today);
