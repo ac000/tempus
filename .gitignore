@@ -1,7 +1,2 @@
 *.swp
 *~
-*.glade#
-
-*.o
-tempus
-timer
