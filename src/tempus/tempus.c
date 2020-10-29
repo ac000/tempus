@@ -1,7 +1,7 @@
 /*
  * tempus.c -	Time tracking tool
  *
- * Copyright (C) 2016 - 2019	Andrew Clayton <andrew@digital-domain.net>
+ * Copyright (C) 2016 - 2020	Andrew Clayton <andrew@digital-domain.net>
  *
  * Licensed under the GNU General Public License V2
  * See COPYING
@@ -736,8 +736,6 @@ int main(int argc, char **argv)
 			show_all = true;
 			break;
 		case 'h':
-			disp_usage();
-			exit(EXIT_SUCCESS);
 		default:
 			disp_usage();
 			exit(EXIT_FAILURE);
