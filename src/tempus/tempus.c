@@ -309,8 +309,8 @@ static void cb_edit(GtkButton *button, struct widgets *w)
 
 	if (!override_unsaved_recording(w))
 		return;
-	else
-		unsaved_recording = false;
+
+	unsaved_recording = false;
 
 	gtk_widget_set_sensitive(w->save, false);
 	gtk_widget_set_sensitive(w->new, true);
