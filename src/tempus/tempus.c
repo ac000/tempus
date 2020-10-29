@@ -255,6 +255,20 @@ static gboolean do_timer(struct widgets *w)
 	return true;
 }
 
+static TCTDB *tdb_open(int flags)
+{
+	TCTDB *tdb = tctdbnew();
+
+	tctdbopen(tdb, tempi_store, flags);
+
+	return tdb;
+}
+
+static void tdb_close(TCTDB *tdb)
+{
+	tctdbclose(tdb);
+}
+
 void cb_quit(GtkButton *button __attribute__((unused)), struct widgets *w)
 {
 	if (override_unsaved_recording(w))
@@ -511,8 +525,7 @@ static void cb_save(GtkButton *button __attribute__((unused)),
 	gtk_box_reorder_child(GTK_BOX(w->list_box), lw->hbox, 2);
 	gtk_widget_show_all(lw->hbox);
 
-	tdb = tctdbnew();
-	tctdbopen(tdb, tempi_store, TDBOWRITER | TDBOCREAT);
+	tdb = tdb_open(TDBOWRITER|TDBOCREAT);
 	pksize = snprintf(pkbuf, sizeof(pkbuf), "%s", tempus_id);
 	cols = tcmapnew3("date", date,
 			 "company", gtk_entry_get_text(GTK_ENTRY(w->company)),
@@ -524,7 +537,7 @@ static void cb_save(GtkButton *button __attribute__((unused)),
 			 NULL);
 	tctdbput(tdb, pkbuf, pksize, cols);
 	tcmapdel(cols);
-	tctdbclose(tdb);
+	tdb_close(tdb);
 	tctdbdel(tdb);
 
 	update_window_title(w);
@@ -610,8 +623,7 @@ static void load_tempi(struct widgets *w)
 
 	set_tempi_store();
 
-	tdb = tctdbnew();
-	tctdbopen(tdb, tempi_store, TDBOREADER);
+	tdb = tdb_open(TDBOREADER);
 	qry = tctdbqrynew(tdb);
 	tctdbqrysetorder(qry, "date", TDBQOSTRDESC);
 	res = tctdbqrysearch(qry);
@@ -682,7 +694,7 @@ static void load_tempi(struct widgets *w)
 
 	tclistdel(res);
 	tctdbqrydel(qry);
-	tctdbclose(tdb);
+	tdb_close(tdb);
 	tctdbdel(tdb);
 }
 
