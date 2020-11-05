@@ -11,7 +11,7 @@ CFLAGS	= -Wall -Wextra -Wdeclaration-after-statement -Wvla \
 	  -I../include \
 	  $(shell pkg-config --cflags gtk+-3.0 glib-2.0 gmodule-2.0)
 LDFLAGS = -Wl,-z,now,-z,defs,-z,relro,--as-needed -fpie
-LIBS	= $(shell pkg-config --libs gtk+-3.0 glib-2.0 gmodule-2.0) -luuid -ltokyocabinet
+LIBS	= $(shell pkg-config --libs gtk+-3.0 glib-2.0 gmodule-2.0) -ltokyocabinet -lsqlite3
 POSTCOMPILE = @mv -f $(DEPDIR)/$*.Td $(DEPDIR)/$*.d && touch $@
 
 sources = $(wildcard *.c)

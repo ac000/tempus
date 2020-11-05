@@ -16,13 +16,13 @@ tempus
 The main program, incorporates the above timer and adds a logging ability.
 You can set a name, project and sub-project and save and edit them.
 
-They are saved to a tokyocabinet database table.
+They are saved to a SQLite database.
 
 
 Building
 ========
 
-Requires: libuuid-devel, tokyocabinet-devel, gtk3-devel, glib2-devel
+Requires: sqlite3-devel, tokyocabinet-devel, gtk3-devel, glib2-devel
 
 
 License

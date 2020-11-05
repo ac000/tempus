@@ -14,6 +14,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <time.h>
 #include <linux/limits.h>
@@ -21,13 +23,15 @@
 #include <tcutil.h>
 #include <tctdb.h>
 
-#include <uuid/uuid.h>
+#include <sqlite3.h>
 
 #include <glib.h>
 
 #include <gtk/gtk.h>
 
 #include "short_types.h"
+#include "tempus.h"
+#include "convert_db.h"
 
 #define APP_NAME	"Tempus"
 
@@ -59,6 +63,8 @@ struct widgets {
 };
 
 struct list_w {
+	int id;
+
 	GtkWidget *hbox;
 	GtkWidget *date;
 	GtkWidget *company;
@@ -102,7 +108,7 @@ static int timer_state = TIMER_STOPPED;
 static u32 elapsed_seconds;
 static GTree *tempi;
 static char tempi_store[PATH_MAX];
-static char tempus_id[37];	/* 36 char UUID + '\0' */
+static long long tempus_id = -1;
 static char last_date[11];	/* YYYY-MM-DD + '\0' */
 
 static void disp_usage(void)
@@ -120,6 +126,20 @@ static void update_elapased_seconds(const struct widgets *w)
 		gtk_spin_button_get_value(GTK_SPIN_BUTTON(w->seconds));
 }
 
+static int int_cmp(gconstpointer a, gconstpointer b,
+		   gpointer user_data __attribute__((unused)))
+{
+	long aa = GPOINTER_TO_INT(a);
+	long bb = GPOINTER_TO_INT(b);
+
+	if (aa < bb)
+		return -1;
+	else if (aa > bb)
+		return 1;
+
+	return 0;
+}
+
 static void seconds_to_hms(u32 *hours, u32 *minutes, u32 *seconds)
 {
 	u32 secs = elapsed_seconds;
@@ -132,6 +152,22 @@ static void seconds_to_hms(u32 *hours, u32 *minutes, u32 *seconds)
 	/* Really this shouldn't be more than 24... */
 	if (*hours > 99)
 		*hours = 99;
+}
+
+static char *secs_to_dur(int seconds, char *buf, size_t len)
+{
+	int secs;
+	int minutes;
+	int hours;
+
+	secs = seconds % 60;
+	seconds /= 60;
+	minutes = seconds % 60;
+	hours = seconds / 60;
+
+	snprintf(buf, len, "%02d:%02d:%02d", hours, minutes, secs);
+
+	return buf;
 }
 
 static const char *get_day_of_week_abr(const char *date)
@@ -255,16 +291,21 @@ static gboolean do_timer(struct widgets *w)
 	return true;
 }
 
-static TCTDB *tdb_open(int flags)
+TCTDB *tdb_open(int flags)
 {
 	TCTDB *tdb = tctdbnew();
+	int rc;
 
-	tctdbopen(tdb, tempi_store, flags);
+	rc = tctdbopen(tdb, tempi_store, flags);
+	if (!rc) {
+		tctdbdel(tdb);
+		return NULL;
+	}
 
 	return tdb;
 }
 
-static void tdb_close(TCTDB *tdb)
+void tdb_close(TCTDB *tdb)
 {
 	tctdbclose(tdb);
 }
@@ -313,9 +354,9 @@ static void cb_start_timer(GtkButton *button __attribute__((unused)),
 
 static void cb_edit(GtkButton *button, struct widgets *w)
 {
-	const char *id = gtk_widget_get_name(GTK_WIDGET(button));
-	struct list_w *lw = g_tree_lookup(tempi, id);
-	const char *time_str = gtk_entry_get_text(GTK_ENTRY(lw->hours));
+	const char *s_id = gtk_widget_get_name(GTK_WIDGET(button));
+	struct list_w *lw;
+	const char *time_str;
 	GtkTextBuffer *desc_buf;
 	int hours;
 	int minutes;
@@ -329,6 +370,9 @@ static void cb_edit(GtkButton *button, struct widgets *w)
 	gtk_widget_set_sensitive(w->save, false);
 	gtk_widget_set_sensitive(w->new, true);
 
+	tempus_id = atol(s_id);
+	lw = g_tree_lookup(tempi, GINT_TO_POINTER(tempus_id));
+
 	gtk_entry_set_text(GTK_ENTRY(w->company), gtk_entry_get_text(
 				GTK_ENTRY(lw->company)));
 	gtk_entry_set_text(GTK_ENTRY(w->project), gtk_entry_get_text(
@@ -341,6 +385,7 @@ static void cb_edit(GtkButton *button, struct widgets *w)
 			lw->data.description : "\0", -1);
 	gtk_text_view_set_buffer(GTK_TEXT_VIEW(w->description), desc_buf);
 
+	time_str = gtk_entry_get_text(GTK_ENTRY(lw->hours));
 	hours = atoi(time_str);
 	minutes = atoi(time_str + 3);
 	seconds = atoi(time_str + 6);
@@ -351,13 +396,11 @@ static void cb_edit(GtkButton *button, struct widgets *w)
 
 	elapsed_seconds = hours*3600 + minutes*60 + seconds;
 	update_window_title(w);
-	snprintf(tempus_id, sizeof(tempus_id), "%s", id);
 }
 
 static void cb_new(GtkButton *button __attribute__((unused)),
 		   struct widgets *w)
 {
-	uuid_t uuid;
 	GtkTextBuffer *desc_buf;
 
 	if (!override_unsaved_recording(w))
@@ -380,9 +423,7 @@ static void cb_new(GtkButton *button __attribute__((unused)),
 	gtk_text_view_set_buffer(GTK_TEXT_VIEW(w->description), desc_buf);
 
 	elapsed_seconds = 0;
-
-	uuid_generate(uuid);
-	uuid_unparse(uuid, tempus_id);
+	tempus_id = -1;
 }
 
 static void create_date_hdr(struct widgets *w, const char *date, bool reorder)
@@ -423,10 +464,10 @@ static void create_date_hdr(struct widgets *w, const char *date, bool reorder)
 	snprintf(last_date, sizeof(last_date), "%s", date);
 }
 
-static struct list_w *create_list_widget(struct widgets *w,
-					 const char *tempus_id)
+static struct list_w *create_list_widget(struct widgets *w, int id)
 {
 	struct list_w *lw = malloc(sizeof(struct list_w));
+	char s_id[22];
 
 	lw->hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 	lw->company = gtk_entry_new();
@@ -463,7 +504,9 @@ static struct list_w *create_list_widget(struct widgets *w,
 			0);
 	gtk_box_pack_start(GTK_BOX(lw->hbox), lw->hours, false, false, 0);
 	gtk_box_pack_end(GTK_BOX(lw->hbox), lw->edit, false, false, 5);
-	gtk_widget_set_name(lw->edit, tempus_id);
+
+	snprintf(s_id, sizeof(s_id), "%d", id);
+	gtk_widget_set_name(lw->edit, s_id);
 	g_signal_connect(G_OBJECT(lw->edit), "clicked", G_CALLBACK(cb_edit),
 			w);
 
@@ -473,27 +516,62 @@ static struct list_w *create_list_widget(struct widgets *w,
 static void cb_save(GtkButton *button __attribute__((unused)),
 		    struct widgets *w)
 {
+	sqlite3_stmt *stmt;
+	sqlite3 *db;
 	time_t now = time(NULL) - new_day_offset;
 	struct tm *tm = localtime(&now);
-	struct list_w *lw = create_list_widget(w, tempus_id);
+	struct list_w *lw;
 	GtkTextBuffer *desc_buf;
 	GtkTextIter start;
 	GtkTextIter end;
 	u32 h;
 	u32 m;
 	u32 s;
-	int pksize;
-	char pkbuf[256];
+	int rc;
 	char hours[14];
 	char date[11];
 	const char *desc;
-	TCTDB *tdb;
-	TCMAP *cols;
+	const char *sql = tempus_id == -1 ? SQL_INSERT : SQL_UPDATE;
+
+	sqlite3_open(tempi_store, &db);
+	rc = sqlite3_prepare_v2(db, sql, -1, &stmt, NULL);
+	if (rc != SQLITE_OK)
+		fprintf(stderr, "sqlite prepare failed: %s\n",
+			sqlite3_errmsg(db));
 
 	strftime(date, sizeof(date), "%F", tm);	/* YYYY-MM-DD */
 	if (!todays_date_hdr_displayed || strcmp(last_date, date) != 0)
 		create_date_hdr(w, date, true);
 
+	sqlite3_bind_text(stmt, 1, date, -1, NULL);
+	sqlite3_bind_text(stmt, 2, gtk_entry_get_text(GTK_ENTRY(w->company)),
+			  -1, NULL);
+	sqlite3_bind_text(stmt, 3, gtk_entry_get_text(GTK_ENTRY(w->project)),
+			  -1, NULL);
+	sqlite3_bind_text(stmt, 4,
+			  gtk_entry_get_text(GTK_ENTRY(w->sub_project)), -1,
+			  NULL);
+	sqlite3_bind_int(stmt, 5, elapsed_seconds);
+
+	desc_buf = gtk_text_view_get_buffer(GTK_TEXT_VIEW(w->description));
+	gtk_text_buffer_get_start_iter(desc_buf, &start);
+	gtk_text_buffer_get_end_iter(desc_buf, &end);
+	desc = gtk_text_buffer_get_text(desc_buf, &start, &end, true);
+	sqlite3_bind_text(stmt, 6, desc, -1, NULL);
+
+	if (tempus_id > -1)
+		sqlite3_bind_int(stmt, 7, tempus_id);
+
+	rc = sqlite3_step(stmt);
+	if (rc != SQLITE_DONE)
+		fprintf(stderr, "sqlite execution failed: %s\n",
+			sqlite3_errmsg(db));
+	sqlite3_finalize(stmt);
+	if (tempus_id == -1)
+		tempus_id = sqlite3_last_insert_rowid(db);
+	sqlite3_close(db);
+
+	lw = create_list_widget(w, tempus_id);
 	gtk_entry_set_text(GTK_ENTRY(lw->company), gtk_entry_get_text(
 				GTK_ENTRY(w->company)));
 	gtk_entry_set_text(GTK_ENTRY(lw->project), gtk_entry_get_text(
@@ -501,13 +579,8 @@ static void cb_save(GtkButton *button __attribute__((unused)),
 	gtk_entry_set_text(GTK_ENTRY(lw->sub_project), gtk_entry_get_text(
 				GTK_ENTRY(w->sub_project)));
 
-	desc_buf = gtk_text_view_get_buffer(GTK_TEXT_VIEW(w->description));
-	gtk_text_buffer_get_start_iter(desc_buf, &start);
-	gtk_text_buffer_get_end_iter(desc_buf, &end);
-	desc = gtk_text_buffer_get_text(desc_buf, &start, &end, true);
 	if (desc && strlen(desc) > 0)
 		lw->data.description = strdup(desc);
-
 	gtk_widget_set_tooltip_text(lw->hbox, desc);
 
 	update_elapased_seconds(w);
@@ -515,7 +588,7 @@ static void cb_save(GtkButton *button __attribute__((unused)),
 	snprintf(hours, sizeof(hours), "%02u:%02u:%02u", h, m, s);
 	gtk_entry_set_text(GTK_ENTRY(lw->hours), hours);
 
-	g_tree_replace(tempi, strdup(tempus_id), lw);
+	g_tree_replace(tempi, GINT_TO_POINTER(tempus_id), lw);
 
 	gtk_container_add(GTK_CONTAINER(w->list_box), lw->hbox);
 	/*
@@ -524,21 +597,6 @@ static void cb_save(GtkButton *button __attribute__((unused)),
 	 */
 	gtk_box_reorder_child(GTK_BOX(w->list_box), lw->hbox, 2);
 	gtk_widget_show_all(lw->hbox);
-
-	tdb = tdb_open(TDBOWRITER|TDBOCREAT);
-	pksize = snprintf(pkbuf, sizeof(pkbuf), "%s", tempus_id);
-	cols = tcmapnew3("date", date,
-			 "company", gtk_entry_get_text(GTK_ENTRY(w->company)),
-			 "project", gtk_entry_get_text(GTK_ENTRY(w->project)),
-			 "sub_project", gtk_entry_get_text(GTK_ENTRY(
-					 w->sub_project)),
-			 "hours", hours,
-			 "description", desc,
-			 NULL);
-	tctdbput(tdb, pkbuf, pksize, cols);
-	tcmapdel(cols);
-	tdb_close(tdb);
-	tctdbdel(tdb);
 
 	update_window_title(w);
 	unsaved_recording = false;
@@ -583,25 +641,41 @@ static int store_company_name(gpointer key,
 	return 0;
 }
 
-static void set_tempi_store(void)
+static int set_tempi_store(void)
 {
-	char tempi_dir[PATH_MAX - 11];	/* - length of "/tempus.tdb" */
+	char tempi_dir[PATH_MAX - 14];	/* - length of "/tempus.sqlite" */
+	struct stat sb;
+	int err;
 
 	snprintf(tempi_dir, sizeof(tempi_dir), "%s/.local/share/tempus",
-			getenv("HOME"));
+		 getenv("HOME"));
 	g_mkdir_with_parents(tempi_dir, 0777);
 
+	/* Check if we need to do the tokyocabinet -> sqlite conversion */
+	snprintf(tempi_store, sizeof(tempi_store), "%s/tempus.sqlite",
+		 tempi_dir);
+	err = stat(tempi_store, &sb);
+	if (!err)
+		return  0;
+
+	/* Convert the db from tokyocabinet to sqlite */
 	snprintf(tempi_store, sizeof(tempi_store), "%s/tempus.tdb", tempi_dir);
+	err = convert_db(tempi_store);
+	if (err)
+		return -1;
+
+	/* We are now using sqlite */
+	snprintf(tempi_store, sizeof(tempi_store), "%s/tempus.sqlite",
+		 tempi_dir);
+
+	return 0;
 }
 
 static void load_tempi(struct widgets *w)
 {
-	TDBQRY *qry;
-	TCTDB *tdb;
-	TCLIST *res;
+	sqlite3_stmt *stmt;
+	sqlite3 *db;
 	char prev_date[11] = "\0";
-	int nr_items;
-	int i;
 	GTree *companies;
 	GTree *projects;
 	GTree *sub_projects;
@@ -621,61 +695,55 @@ static void load_tempi(struct widgets *w)
 				       (void (*)(void))g_ascii_strcasecmp,
 				       NULL, free, NULL);
 
-	set_tempi_store();
+	sqlite3_open(tempi_store, &db);
+	sqlite3_prepare_v2(db, "SELECT * FROM tempus ORDER by date DESC",
+			   -1, &stmt, NULL);
 
-	tdb = tdb_open(TDBOREADER);
-	qry = tctdbqrynew(tdb);
-	tctdbqrysetorder(qry, "date", TDBQOSTRDESC);
-	res = tctdbqrysearch(qry);
-
-	nr_items = tclistnum(res);
-	for (i = 0; i < nr_items; i++) {
-		int rsize;
+	while (sqlite3_step(stmt) == SQLITE_ROW) {
 		struct list_w *lw;
 		const char *date;
 		const char *desc;
-		const char *comp;
+		const char *entity;
 		const char *proj;
 		const char *sub_proj;
-		const char *pkbuf = tclistval(res, i, &rsize);
-		TCMAP *cols = tctdbget(tdb, pkbuf, rsize);
+		char buf[16];
+		int secs;
+		int id;
 
-		tcmapiterinit(cols);
-		date = tcmapget2(cols, "date");
-		if (!show_all && !entry_show(date)) {
-			tcmapdel(cols);
-			continue;
-		}
+		date = (char *)sqlite3_column_text(stmt, 1);
+		if (!show_all && !entry_show(date))
+			break;
 
 		if (strcmp(prev_date, date) != 0)
 			create_date_hdr(w, date, false);
 		snprintf(prev_date, sizeof(prev_date), "%s", date);
 
-		lw = create_list_widget(w, pkbuf);
-		comp = tcmapget2(cols, "company");
-		gtk_entry_set_text(GTK_ENTRY(lw->company), comp);
-		proj = tcmapget2(cols, "project");
+		id = sqlite3_column_int(stmt, 0);
+		lw = create_list_widget(w, id);
+		entity = (char *)sqlite3_column_text(stmt, 2);
+		gtk_entry_set_text(GTK_ENTRY(lw->company), entity);
+		proj = (char *)sqlite3_column_text(stmt, 3);
 		gtk_entry_set_text(GTK_ENTRY(lw->project), proj);
-		sub_proj = tcmapget2(cols, "sub_project");
+		sub_proj = (char *)sqlite3_column_text(stmt, 4);
 		gtk_entry_set_text(GTK_ENTRY(lw->sub_project), sub_proj);
-		gtk_entry_set_text(GTK_ENTRY(lw->hours), tcmapget2(cols,
-					"hours"));
+		secs = sqlite3_column_int(stmt, 5);
+		gtk_entry_set_text(GTK_ENTRY(lw->hours),
+				   secs_to_dur(secs, buf, sizeof(buf)));
 
-		desc = tcmapget2(cols, "description");
+		desc = (char *)sqlite3_column_text(stmt, 6);
 		if (desc && strlen(desc) > 0) {
 			gtk_widget_set_tooltip_text(lw->hbox, desc);
 			lw->data.description = strdup(desc);
 		}
 
-		if (strlen(comp) > 0)
-			g_tree_replace(companies, strdup(comp), NULL);
+		if (strlen(entity) > 0)
+			g_tree_replace(companies, strdup(entity), NULL);
 		if (strlen(proj) > 0)
 			g_tree_replace(projects, strdup(proj), NULL);
 		if (strlen(sub_proj) > 0)
 			g_tree_replace(sub_projects, strdup(sub_proj), NULL);
 
-		tcmapdel(cols);
-		g_tree_replace(tempi, strdup(pkbuf), lw);
+		g_tree_replace(tempi, GINT_TO_POINTER(id), lw);
 
 		if (!is_today(date))
 			gtk_widget_set_no_show_all(lw->edit, true);
@@ -684,6 +752,8 @@ static void load_tempi(struct widgets *w)
 				false, 0);
 		gtk_widget_show_all(lw->hbox);
 	}
+	sqlite3_finalize(stmt);
+	sqlite3_close(db);
 
 	g_tree_foreach(companies, store_company_name, w);
 	g_tree_foreach(projects, store_project_name, w);
@@ -691,11 +761,6 @@ static void load_tempi(struct widgets *w)
 	g_tree_destroy(companies);
 	g_tree_destroy(projects);
 	g_tree_destroy(sub_projects);
-
-	tclistdel(res);
-	tctdbqrydel(qry);
-	tdb_close(tdb);
-	tctdbdel(tdb);
 }
 
 static void get_widgets(struct widgets *w, GtkBuilder *builder)
@@ -739,8 +804,8 @@ int main(int argc, char **argv)
 	GtkBuilder *builder;
 	GError *error = NULL;
 	struct widgets *widgets;
-	uuid_t uuid;
 	int optind;
+	int err;
 
 	while ((optind = getopt(argc, argv, "ah")) != -1) {
 		switch (optind) {
@@ -758,6 +823,10 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
+	err = set_tempi_store();
+	if (err)
+		exit(EXIT_FAILURE);
+
 	gtk_init(&argc, &argv);
 
 	builder = gtk_builder_new();
@@ -771,13 +840,9 @@ int main(int argc, char **argv)
 	gtk_builder_connect_signals(builder, widgets);
 	g_object_unref(G_OBJECT(builder));
 
-	tempi = g_tree_new_full((GCompareDataFunc)
-				(void (*)(void))g_ascii_strcasecmp, NULL, free,
+	tempi = g_tree_new_full((GCompareDataFunc)int_cmp, NULL, NULL,
 				free_lw);
 	load_tempi(widgets);
-
-	uuid_generate(uuid);
-	uuid_unparse(uuid, tempus_id);
 
 	update_window_title(widgets);
 	gtk_widget_show(widgets->window);
