@@ -22,7 +22,4 @@
 	"date = ?, entity = ?, project = ?, sub_project = ?, duration = ?, " \
 	"description = ? WHERE id = ?"
 
-extern TCTDB *tdb_open(int flags);
-extern void tdb_close(TCTDB *tdb);
-
 #endif /* _TEMPUS_H_ */

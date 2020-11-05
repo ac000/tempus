@@ -20,9 +20,6 @@
 #include <time.h>
 #include <linux/limits.h>
 
-#include <tcutil.h>
-#include <tctdb.h>
-
 #include <sqlite3.h>
 
 #include <glib.h>
@@ -289,25 +286,6 @@ static gboolean do_timer(struct widgets *w)
 	update_window_title(w);
 
 	return true;
-}
-
-TCTDB *tdb_open(int flags)
-{
-	TCTDB *tdb = tctdbnew();
-	int rc;
-
-	rc = tctdbopen(tdb, tempi_store, flags);
-	if (!rc) {
-		tctdbdel(tdb);
-		return NULL;
-	}
-
-	return tdb;
-}
-
-void tdb_close(TCTDB *tdb)
-{
-	tctdbclose(tdb);
 }
 
 void cb_quit(GtkButton *button __attribute__((unused)), struct widgets *w)

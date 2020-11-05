@@ -104,7 +104,7 @@ static int dur_to_secs(const char *duration)
 	return (hours*3600) + (minutes*60) + seconds;
 }
 
-static int populate_db(sqlite3 *db, bool *do_rename)
+static int populate_db(const char *tc, sqlite3 *db, bool *do_rename)
 {
 	sqlite3_stmt *stmt;
 	TCTDB *tdb;
@@ -115,8 +115,10 @@ static int populate_db(sqlite3 *db, bool *do_rename)
 	int rc;
 	int ret = -1;
 
-	tdb = tdb_open(TDBOREADER);
-	if (!tdb) {
+	tdb = tctdbnew();
+	rc = tctdbopen(tdb, tc, TDBOREADER);
+	if (!rc) {
+		tctdbdel(tdb);
 		*do_rename = false;
 		return 0; /* OK, no TCTDB to convert... */
 	}
@@ -173,7 +175,7 @@ out_cleanup:
 
 	tclistdel(res);
 	tctdbqrydel(qry);
-	tdb_close(tdb);
+	tctdbclose(tdb);
 	tctdbdel(tdb);
 
 	return ret;
@@ -234,7 +236,7 @@ int convert_db(const char *tdb)
 		"Converting tempus.tdb -> tempus.sqlite "
 		"(Backing up tempus.tdb -> tempus.tdb.bak)\n");
 
-	err = populate_db(db, &do_rename);
+	err = populate_db(tdb, db, &do_rename);
 	if (err)
 		goto out_close;
 
