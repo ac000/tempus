@@ -104,7 +104,7 @@ static int dur_to_secs(const char *duration)
 	return (hours*3600) + (minutes*60) + seconds;
 }
 
-static int populate_db(sqlite3 *db, int dfd, bool *do_rename)
+static int populate_db(sqlite3 *db, bool *do_rename)
 {
 	sqlite3_stmt *stmt;
 	TCTDB *tdb;
@@ -113,7 +113,6 @@ static int populate_db(sqlite3 *db, int dfd, bool *do_rename)
 	int i;
 	int nr;
 	int rc;
-	int err;
 	int ret = -1;
 
 	tdb = tdb_open(TDBOREADER);
@@ -165,12 +164,6 @@ static int populate_db(sqlite3 *db, int dfd, bool *do_rename)
 		sqlite3_reset(stmt);
 
 		tcmapdel(cols);
-	}
-
-	err = renameat(dfd, "." TEMPUS_SQLITE, dfd, TEMPUS_SQLITE);
-	if (err) {
-		perror("renameat");
-		goto out_cleanup;
 	}
 
 	ret = 0;
@@ -241,9 +234,15 @@ int convert_db(const char *tdb)
 		"Converting tempus.tdb -> tempus.sqlite "
 		"(Backing up tempus.tdb -> tempus.tdb.bak)\n");
 
-	err = populate_db(db, dfd, &do_rename);
+	err = populate_db(db, &do_rename);
 	if (err)
 		goto out_close;
+
+	err = renameat(dfd, "." TEMPUS_SQLITE, dfd, TEMPUS_SQLITE);
+	if (err) {
+		perror("renameat");
+		goto out_close;
+	}
 
 	ret = 0;
 
