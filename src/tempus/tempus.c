@@ -137,32 +137,24 @@ static int int_cmp(gconstpointer a, gconstpointer b,
 	return 0;
 }
 
-static void seconds_to_hms(u32 *hours, u32 *minutes, u32 *seconds)
+static void seconds_to_hms(int seconds, u32 *h, u32 *m, u32 *s)
 {
-	u32 secs = elapsed_seconds;
+	u32 secs = seconds;
 
-	*seconds = secs % 60;
+	*s = secs % 60;
 	secs /= 60;
-	*minutes = secs % 60;
-	*hours = secs / 60;
-
-	/* Really this shouldn't be more than 24... */
-	if (*hours > 99)
-		*hours = 99;
+	*m = secs % 60;
+	*h = secs / 60;
 }
 
 static char *secs_to_dur(int seconds, char *buf, size_t len)
 {
-	int secs;
-	int minutes;
-	int hours;
+	u32 secs;
+	u32 minutes;
+	u32 hours;
 
-	secs = seconds % 60;
-	seconds /= 60;
-	minutes = seconds % 60;
-	hours = seconds / 60;
-
-	snprintf(buf, len, "%02d:%02d:%02d", hours, minutes, secs);
+	seconds_to_hms(seconds, &hours, &minutes, &secs);
+	snprintf(buf, len, "%02u:%02u:%02u", hours, minutes, secs);
 
 	return buf;
 }
@@ -251,7 +243,7 @@ static void update_window_title(struct widgets *w)
 	u32 seconds;
 	char title[128];
 
-	seconds_to_hms(&hours, &minutes, &seconds);
+	seconds_to_hms(elapsed_seconds, &hours, &minutes, &seconds);
 
 	snprintf(title, sizeof(title), "%s%s [%s%02u:%02u:%02u - %s / %s / %s]",
 			(timer_state == TIMER_RUNNING) ? REC_BTN: "", APP_NAME,
@@ -277,7 +269,7 @@ static gboolean do_timer(struct widgets *w)
 
 	elapsed_seconds++;
 
-	seconds_to_hms(&hours, &minutes, &seconds);
+	seconds_to_hms(elapsed_seconds, &hours, &minutes, &seconds);
 
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(w->seconds), seconds);
 	gtk_spin_button_set_value(GTK_SPIN_BUTTON(w->minutes), minutes);
@@ -502,9 +494,6 @@ static void cb_save(GtkButton *button __attribute__((unused)),
 	GtkTextBuffer *desc_buf;
 	GtkTextIter start;
 	GtkTextIter end;
-	u32 h;
-	u32 m;
-	u32 s;
 	int rc;
 	char hours[14];
 	char date[11];
@@ -562,8 +551,7 @@ static void cb_save(GtkButton *button __attribute__((unused)),
 	gtk_widget_set_tooltip_text(lw->hbox, desc);
 
 	update_elapased_seconds(w);
-	seconds_to_hms(&h, &m, &s);
-	snprintf(hours, sizeof(hours), "%02u:%02u:%02u", h, m, s);
+	secs_to_dur(elapsed_seconds, hours, sizeof(hours));
 	gtk_entry_set_text(GTK_ENTRY(lw->hours), hours);
 
 	g_tree_replace(tempi, GINT_TO_POINTER(tempus_id), lw);
