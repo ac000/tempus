@@ -147,14 +147,15 @@ static void seconds_to_hms(int seconds, u32 *h, u32 *m, u32 *s)
 	*h = secs / 60;
 }
 
-static char *secs_to_dur(int seconds, char *buf, size_t len)
+char *secs_to_dur(int seconds, char *buf, size_t len, const char *format)
 {
 	u32 secs;
 	u32 minutes;
 	u32 hours;
+	const char *fmt = format ? format : "%02u:%02u:%02u";
 
 	seconds_to_hms(seconds, &hours, &minutes, &secs);
-	snprintf(buf, len, "%02u:%02u:%02u", hours, minutes, secs);
+	snprintf(buf, len, fmt, hours, minutes, secs);
 
 	return buf;
 }
@@ -551,7 +552,7 @@ static void cb_save(GtkButton *button __attribute__((unused)),
 	gtk_widget_set_tooltip_text(lw->hbox, desc);
 
 	update_elapased_seconds(w);
-	secs_to_dur(elapsed_seconds, hours, sizeof(hours));
+	secs_to_dur(elapsed_seconds, hours, sizeof(hours), NULL);
 	gtk_entry_set_text(GTK_ENTRY(lw->hours), hours);
 
 	g_tree_replace(tempi, GINT_TO_POINTER(tempus_id), lw);
@@ -694,7 +695,7 @@ static void load_tempi(struct widgets *w)
 		gtk_entry_set_text(GTK_ENTRY(lw->sub_project), sub_proj);
 		secs = sqlite3_column_int(stmt, 5);
 		gtk_entry_set_text(GTK_ENTRY(lw->hours),
-				   secs_to_dur(secs, buf, sizeof(buf)));
+				   secs_to_dur(secs, buf, sizeof(buf), NULL));
 
 		desc = (char *)sqlite3_column_text(stmt, 6);
 		if (desc && strlen(desc) > 0) {

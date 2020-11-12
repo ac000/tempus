@@ -22,4 +22,7 @@
 	"date = ?, entity = ?, project = ?, sub_project = ?, duration = ?, " \
 	"description = ? WHERE id = ?"
 
+extern char *secs_to_dur(int seconds, char *buf, size_t len,
+			 const char *format);
+
 #endif /* _TEMPUS_H_ */
