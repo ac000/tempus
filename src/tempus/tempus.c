@@ -28,6 +28,7 @@
 
 #include "short_types.h"
 #include "tempus.h"
+#include "summaries.h"
 #include "convert_db.h"
 
 #define APP_NAME	"Tempus"
@@ -36,27 +37,6 @@
 
 struct _data {
 	char *description;
-};
-
-struct widgets {
-	GtkWidget *window;
-	GtkWidget *list_box;
-	GtkWidget *start;
-	GtkWidget *stop;
-	GtkWidget *save;
-	GtkWidget *new;
-	GtkWidget *hours;
-	GtkWidget *minutes;
-	GtkWidget *seconds;
-	GtkWidget *company;
-	GtkWidget *project;
-	GtkWidget *sub_project;
-	GtkWidget *description;
-	GtkWidget *dialog;
-
-	GtkListStore *companies;
-	GtkListStore *projects;
-	GtkListStore *sub_projects;
 };
 
 struct list_w {
@@ -484,6 +464,18 @@ static struct list_w *create_list_widget(struct widgets *w, int id)
 	return lw;
 }
 
+static void cb_summaries(GtkButton *button __attribute__((unused)),
+			 struct widgets *w)
+{
+	do_summaries(w, tempi_store);
+}
+
+void cb_close_sum_win(GtkButton *button __attribute__((unused)),
+		      GtkWidget *sum_win)
+{
+	gtk_widget_hide(sum_win);
+}
+
 static void cb_save(GtkButton *button __attribute__((unused)),
 		    struct widgets *w)
 {
@@ -736,6 +728,8 @@ static void get_widgets(struct widgets *w, GtkBuilder *builder)
 	w->list_box = GTK_WIDGET(gtk_builder_get_object(builder, "list_box"));
 	w->save = GTK_WIDGET(gtk_builder_get_object(builder, "save"));
 	w->new = GTK_WIDGET(gtk_builder_get_object(builder, "new"));
+	w->summaries = GTK_WIDGET(gtk_builder_get_object(builder,
+							 "summaries"));
 	w->hours = GTK_WIDGET(gtk_builder_get_object(builder, "hours"));
 	w->minutes = GTK_WIDGET(gtk_builder_get_object(builder, "minutes"));
 	w->seconds = GTK_WIDGET(gtk_builder_get_object(builder, "seconds"));
@@ -755,6 +749,13 @@ static void get_widgets(struct widgets *w, GtkBuilder *builder)
 	w->sub_projects = GTK_LIST_STORE(gtk_builder_get_object(builder,
 				"sub_projects"));
 
+	w->sum_win = GTK_WIDGET(gtk_builder_get_object(builder, "sum_win"));
+
+	w->summaries_ls = GTK_LIST_STORE(gtk_builder_get_object(builder,
+								"summaries_ls"));
+	w->summaries_tms = GTK_TREE_MODEL_SORT(gtk_builder_get_object(builder,
+								      "summaries_tms"));
+
 	gtk_widget_set_sensitive(w->save, false);
 	gtk_widget_set_sensitive(w->new, false);
 
@@ -764,6 +765,8 @@ static void get_widgets(struct widgets *w, GtkBuilder *builder)
 				cb_stop_timer), w);
 	g_signal_connect(G_OBJECT(w->save), "clicked", G_CALLBACK(cb_save), w);
 	g_signal_connect(G_OBJECT(w->new), "clicked", G_CALLBACK(cb_new), w);
+	g_signal_connect(G_OBJECT(w->summaries), "clicked",
+			 G_CALLBACK(cb_summaries), w);
 }
 
 int main(int argc, char **argv)

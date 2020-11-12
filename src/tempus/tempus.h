@@ -10,7 +10,44 @@
 #ifndef _TEMPUS_H_
 #define _TEMPUS_H_
 
-#include <tctdb.h>
+#include <gtk/gtk.h>
+
+struct widgets {
+	GtkWidget *window;
+	GtkWidget *list_box;
+	GtkWidget *start;
+	GtkWidget *stop;
+	GtkWidget *save;
+	GtkWidget *new;
+	GtkWidget *summaries;
+	GtkWidget *hours;
+	GtkWidget *minutes;
+	GtkWidget *seconds;
+	GtkWidget *company;
+	GtkWidget *project;
+	GtkWidget *sub_project;
+	GtkWidget *description;
+	GtkWidget *dialog;
+
+	GtkListStore *companies;
+	GtkListStore *projects;
+	GtkListStore *sub_projects;
+
+	GtkWidget *sum_win;
+
+	GtkListStore *summaries_ls;
+	GtkTreeModelSort *summaries_tms;
+};
+
+enum sql_column {
+	SQL_COL_ID = 0,
+	SQL_COL_DATE,
+	SQL_COL_ENTITY,
+	SQL_COL_PROJECT,
+	SQL_COL_SUB_PROJECT,
+	SQL_COL_DURATION,
+	SQL_COL_DESCRIPTION
+};
 
 #define SQL_INSERT \
 	"INSERT INTO tempus " \
