@@ -130,6 +130,10 @@ static int populate_db(const char *tc, sqlite3 *db, bool *do_rename)
 		return ret;
 	}
 
+	fprintf(stdout,
+		"Converting tempus.tdb -> tempus.sqlite "
+		"(Backing up tempus.tdb -> tempus.tdb.bak)\n");
+
 	qry = tctdbqrynew(tdb);
 	tctdbqrysetorder(qry, "date", TDBQOSTRASC);
 	res = tctdbqrysearch(qry);
@@ -231,10 +235,6 @@ int convert_db(const char *tdb)
 			sqlite3_errmsg(db));
 		goto out_close;
 	}
-
-	fprintf(stdout,
-		"Converting tempus.tdb -> tempus.sqlite "
-		"(Backing up tempus.tdb -> tempus.tdb.bak)\n");
 
 	err = populate_db(tdb, db, &do_rename);
 	if (err)
